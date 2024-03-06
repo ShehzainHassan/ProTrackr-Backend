@@ -2,7 +2,10 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 
-const User = require("./models/user");
+const dbSchema = require("./models/user");
+const User = dbSchema.User;
+const Group = dbSchema.Group;
+const FacultyIdea = dbSchema.FacultyIdea;
 const URL = require("url");
 const cors = require("cors");
 
@@ -30,6 +33,42 @@ app.get("/", (req, res) => {
   res.send("Successful response.");
 });
 
+app.post("/saveGroup", jsonParser, async (req, res) => {
+  const {
+    FYP_type,
+    Faculty_img,
+    Status,
+    Tags,
+    description,
+    email,
+    id,
+    img,
+    leader,
+    title,
+    advisor,
+  } = req.body;
+  console.log(req.body);
+  try {
+    const newGroup = new Group({
+      FYP_type,
+      Faculty_img: "",
+      Status,
+      Tags,
+      description,
+      email,
+      id,
+      img,
+      leader,
+      title,
+      advisor: "",
+    });
+    newGroup.save();
+    res.status(201).send(newGroup);
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
 app.post("/signup", jsonParser, async (req, res) => {
   const {
     firstName,
@@ -77,6 +116,67 @@ app.get("/allusers", jsonParser, async (req, res) => {
     console.log(err);
   }
 });
+
+app.get("/allGroups", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  try {
+    const allGroups = await Group.find({});
+    if (allGroups) {
+      res.status(200).send(allGroups);
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+app.get("/allFacultyIdeas", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  try {
+    const allIdeas = await FacultyIdea.find({});
+    if (allIdeas) {
+      console.log(allIdeas);
+      res.status(200).send(allIdeas);
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+app.post("/joinGroup", jsonParser, async (req, res) => {
+  const { id, email } = req.body;
+
+  const parsedId = parseFloat(String(id));
+
+  const group = await Group.findOne({ id: parsedId });
+  console.log(group);
+  if (group) {
+    const emails = group.email;
+
+    const emailExists = emails.some((e) => e.val == email);
+
+    if (emailExists) {
+      res.status(409).send("Email already exists");
+      return;
+    }
+
+    emails.push({ val: email });
+    group.db.collection("groups").updateOne(
+      { id: parsedId },
+      {
+        $set: { email: emails },
+        $currentDate: { lastModified: true },
+      }
+    );
+    res.status(201).send(group);
+  }
+});
+
 app.get("/userdetails", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   try {
@@ -103,8 +203,11 @@ app.get("/userdetails", jsonParser, async (req, res) => {
 
 app.post("/login", jsonParser, async (req, res) => {
   const { email, password } = req.body;
+  console.log(email);
+  console.log(password);
   try {
     const loggedUser = await User.findOne({ email, password });
+    console.log(loggedUser);
     if (loggedUser) {
       console.log("Successfully Logged In");
       res.status(201).send({ email, password });
