@@ -104,6 +104,7 @@ app.post("/signup", jsonParser, async (req, res) => {
 });
 
 // Faculty Signup
+// Route for creating a new faculty entry
 app.post("/facultySignup", jsonParser, async (req, res) => {
   const {
     firstName,
@@ -117,7 +118,15 @@ app.post("/facultySignup", jsonParser, async (req, res) => {
   } = req.body;
 
   try {
-    const faculty = new Faculty({
+    // Check if the email already exists in the database
+    const existingFaculty = await Faculty.findOne({ email });
+
+    if (existingFaculty) {
+      return res.status(409).send("Faculty with this email already exists.");
+    }
+
+    // If faculty with this email doesn't exist, create a new record
+    const newFaculty = new Faculty({
       firstName,
       lastName,
       email,
@@ -127,13 +136,57 @@ app.post("/facultySignup", jsonParser, async (req, res) => {
       password,
       photo,
     });
-    faculty.save();
-    res.status(201).send(faculty);
+    await newFaculty.save();
+
+    res.status(201).send(newFaculty); // Return newly created faculty
   } catch (err) {
     res.status(422).send(err);
     console.log(err);
   }
 });
+
+// Route for updating an existing faculty entry
+// Route for updating faculty details
+// Route for updating faculty details
+// Update Faculty Details
+app.put("/updateFacultyDetails", jsonParser, async (req, res) => {
+  const { 
+    email, 
+    firstName, 
+    lastName, 
+    curr_education, 
+    roomNo, 
+    photo, 
+    interest_Tags 
+  } = req.body;
+
+  try {
+    const updatedFaculty = await Faculty.findOneAndUpdate(
+      { email },
+      { 
+        firstName, 
+        lastName, 
+        curr_education, 
+        roomNo, 
+        photo, 
+        interest_Tags 
+      },
+      { new: true }
+    );
+
+    if (updatedFaculty) {
+      res.status(200).send(updatedFaculty);
+      console.log("Faculty Edit Success")
+    } else {
+      res.status(404).send("Faculty not found");
+    }
+  } catch (err) {
+    res.status(500).send(err);
+    console.log(err);
+  }
+});
+
+
 
 
 app.get("/allusers", jsonParser, async (req, res) => {

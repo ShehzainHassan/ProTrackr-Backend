@@ -24,7 +24,7 @@ const FacultySchema = new mongoose.Schema({
   lastName: String,
   email: String,
   roomNo: String,
-  interest_Tags: String,
+  interest_Tags: [String],
   curr_education: String,
   password: String,
   photo: String,
