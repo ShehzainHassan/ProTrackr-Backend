@@ -6,6 +6,8 @@ const dbSchema = require("./models/user");
 const User = dbSchema.User;
 const Group = dbSchema.Group;
 const FacultyIdea = dbSchema.FacultyIdea;
+const UserOTP = dbSchema.UserOTP;
+
 const URL = require("url");
 const cors = require("cors");
 
@@ -103,7 +105,6 @@ app.post("/signup", jsonParser, async (req, res) => {
 });
 
 app.get("/allusers", jsonParser, async (req, res) => {
-  const query = URL.parse(req.url, true).query;
   try {
     const allusers = await User.find({});
     if (allusers) {
@@ -118,7 +119,6 @@ app.get("/allusers", jsonParser, async (req, res) => {
 });
 
 app.get("/allGroups", jsonParser, async (req, res) => {
-  const query = URL.parse(req.url, true).query;
   try {
     const allGroups = await Group.find({});
     if (allGroups) {
@@ -133,7 +133,6 @@ app.get("/allGroups", jsonParser, async (req, res) => {
 });
 
 app.get("/allFacultyIdeas", jsonParser, async (req, res) => {
-  const query = URL.parse(req.url, true).query;
   try {
     const allIdeas = await FacultyIdea.find({});
     if (allIdeas) {
@@ -201,10 +200,26 @@ app.get("/userdetails", jsonParser, async (req, res) => {
   }
 });
 
+app.get("/getOTP", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  const OTP = query.otp.toString();
+  try {
+    const userOTP = await UserOTP.findOne({ email });
+    if (userOTP.OTP.toString() === OTP) {
+      await UserOTP.deleteOne({ email });
+      res.status(200).send(true);
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
 app.post("/login", jsonParser, async (req, res) => {
   const { email, password } = req.body;
-  console.log(email);
-  console.log(password);
   try {
     const loggedUser = await User.findOne({ email, password });
     console.log(loggedUser);
@@ -215,27 +230,99 @@ app.post("/login", jsonParser, async (req, res) => {
       console.error("Invalid email or password");
       res.status(201).send(false);
     }
-    // const credentials = db.collection('users').find({}, {projection: {email: 1, password: 1, _id:0 }});
-    // let isValidCredentials = false;
-    // credentials.forEach(document => {
-    //     if (email === document.email && password === document.password){
-    //         console.log("Successfully Logged In");
-    //         // console.log(db.collection('users').findOne({}, (error, result) => {console.log(result)}))
-    //         res.status(201).send({email, password});
-    //         return;
-    //     }
-    // })
-    // console.log("Invalid Credentials");
-    // res.status(201).send({});
   } catch (err) {
     res.status(422).send(err);
     console.log(err);
   }
 });
 
-// // Defining User model
-// const User = mongoose.model('User', User.userSchema);
+app.get("/alreadySent", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  console.log(email);
+  try {
+    const user = await UserOTP.findOne({ email });
+    console.log(user);
+    if (!user) {
+      return res.status(200).send(false);
+    }
+    res.status(200).send(true);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-// User.createCollection().then(function (collection) {
-//     console.log('Collection is created!');
-// });
+app.post("/sendOTP", jsonParser, async (req, res) => {
+  const { email } = req.body;
+  const userOTP = await UserOTP.findOne({ email });
+  if (userOTP) {
+    await UserOTP.deleteOne({ email });
+  }
+  try {
+    const OTP = Math.floor(1000 + Math.random() * 9000);
+    const newUserOTP = new UserOTP({
+      email: email,
+      OTP: OTP,
+    });
+
+    newUserOTP.save();
+    await sendEmail(email, OTP);
+    res.status(200).json({ message: "OTP sent successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(422).json({ error: "Failed to send OTP" });
+  }
+});
+
+app.post("/changePassword", jsonParser, async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.status(200).send("Password updated successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+var nodemailer = require("nodemailer");
+
+async function sendEmail(email, OTP) {
+  var transporter = nodemailer.createTransport({
+    host: "smtpout.secureserver.net",
+    port: 587,
+    secure: false,
+    logger: true,
+    debug: true,
+    service: "hotmail",
+    auth: {
+      user: "ProTrackr@hotmail.com",
+      pass: "1234admin1234",
+    },
+    tls: {
+      ciphers: "SSLv3",
+      rejectUnauthorized: false,
+    },
+  });
+
+  var mailOptions = {
+    from: "ProTrackr@hotmail.com",
+    to: email,
+    subject: "Welcome",
+    text: `Your OTP for password reset is ${OTP}`,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.log(error);
+  }
+}

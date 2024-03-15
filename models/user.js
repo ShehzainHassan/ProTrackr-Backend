@@ -57,6 +57,15 @@ FacultyIdea.createCollection().then(function (collection) {
   console.log("Faculty Idea Schema is created!");
 });
 
+const userOTP = new mongoose.Schema({
+  email: String,
+  OTP: Number,
+});
+
+const UserOTP = mongoose.model("UserOTP", userOTP);
+UserOTP.createCollection().then(function (collection) {});
+
 exports.User = User;
 exports.Group = Group;
 exports.FacultyIdea = FacultyIdea;
+exports.UserOTP = UserOTP;
