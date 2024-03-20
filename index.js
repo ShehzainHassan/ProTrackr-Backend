@@ -146,13 +146,14 @@ app.get("/allFacultyIdeas", jsonParser, async (req, res) => {
 });
 
 app.post("/joinGroup", jsonParser, async (req, res) => {
-  const { id, email } = req.body;
+  const { id, email, img } = req.body;
 
   const parsedId = parseFloat(String(id));
 
   const group = await Group.findOne({ id: parsedId });
   if (group) {
     const emails = group.email;
+    const images = group.img;
 
     const emailExists = emails.some((e) => e.val == email);
 
@@ -162,16 +163,47 @@ app.post("/joinGroup", jsonParser, async (req, res) => {
     }
 
     emails.push({ val: email });
-    group.db.collection("groups").updateOne(
+    images.push({ val: img });
+
+    await Group.updateOne(
       { id: parsedId },
       {
-        $set: { email: emails },
+        $set: { email: emails, img: images },
         $currentDate: { lastModified: true },
       }
     );
+
     res.status(201).send(group);
   }
 });
+
+// app.post("/joinGroup", jsonParser, async (req, res) => {
+//   const { id, email } = req.body;
+
+//   const parsedId = parseFloat(String(id));
+
+//   const group = await Group.findOne({ id: parsedId });
+//   if (group) {
+//     const emails = group.email;
+
+//     const emailExists = emails.some((e) => e.val == email);
+
+//     if (emailExists) {
+//       res.status(409).send("Email already exists");
+//       return;
+//     }
+
+//     emails.push({ val: email });
+//     group.db.collection("groups").updateOne(
+//       { id: parsedId },
+//       {
+//         $set: { email: emails },
+//         $currentDate: { lastModified: true },
+//       }
+//     );
+//     res.status(201).send(group);
+//   }
+// });
 
 app.get("/userdetails", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
