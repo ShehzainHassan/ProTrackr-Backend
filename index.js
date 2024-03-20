@@ -248,6 +248,21 @@ app.get("/alreadySent", jsonParser, async (req, res) => {
   }
 });
 
+app.delete("/deleteGroup", jsonParser, async (req, res) => {
+  const { title, email } = req.body;
+  try {
+    const group = await Group.findOne({ title, "email.val": email });
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+    await Group.deleteOne({ title, "email.val": email });
+    return res.status(200).json({ message: "Group deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.post("/sendOTP", jsonParser, async (req, res) => {
   const { email } = req.body;
   const userOTP = await UserOTP.findOne({ email });
