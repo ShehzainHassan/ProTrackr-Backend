@@ -49,7 +49,6 @@ app.post("/saveGroup", jsonParser, async (req, res) => {
     title,
     advisor,
   } = req.body;
-  console.log(req.body);
   try {
     const newGroup = new Group({
       FYP_type,
@@ -136,7 +135,6 @@ app.get("/allFacultyIdeas", jsonParser, async (req, res) => {
   try {
     const allIdeas = await FacultyIdea.find({});
     if (allIdeas) {
-      console.log(allIdeas);
       res.status(200).send(allIdeas);
     } else {
       res.status(200).send(false);
@@ -153,7 +151,6 @@ app.post("/joinGroup", jsonParser, async (req, res) => {
   const parsedId = parseFloat(String(id));
 
   const group = await Group.findOne({ id: parsedId });
-  console.log(group);
   if (group) {
     const emails = group.email;
 
@@ -222,7 +219,6 @@ app.post("/login", jsonParser, async (req, res) => {
   const { email, password } = req.body;
   try {
     const loggedUser = await User.findOne({ email, password });
-    console.log(loggedUser);
     if (loggedUser) {
       console.log("Successfully Logged In");
       res.status(201).send({ email, password });
@@ -239,7 +235,6 @@ app.post("/login", jsonParser, async (req, res) => {
 app.get("/alreadySent", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const email = query.email;
-  console.log(email);
   try {
     const user = await UserOTP.findOne({ email });
     console.log(user);
@@ -275,6 +270,76 @@ app.post("/sendOTP", jsonParser, async (req, res) => {
   }
 });
 
+app.post("/groupMembers", jsonParser, async (req, res) => {
+  const { title, email } = req.body;
+  try {
+    const group = await Group.findOne({ title, "email.val": email });
+
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    const groupEmails = group.email.map((member) => member.val);
+
+    const users = await User.find({ email: { $in: groupEmails } });
+
+    const userDetails = users.map((user) => ({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+    }));
+
+    return res.status(200).json({ userDetails });
+  } catch (error) {
+    console.error("Error fetching group members:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/isLeader", jsonParser, async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const { firstName, lastName } = user;
+
+    const group = await Group.findOne({ leader: `${firstName} ${lastName}` });
+    if (!group) {
+      return res.status(200).json(false);
+    }
+
+    return res.status(200).json(true);
+  } catch (error) {
+    console.error("Error determining leader status:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/leaveGroup", jsonParser, async (req, res) => {
+  const { email } = req.body;
+  try {
+    const group = await Group.findOne({ "email.val": email });
+    console.log(group);
+
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    const updatedEmails = group.email.filter((obj) => obj.val !== email);
+    group.email = updatedEmails;
+
+    await group.save();
+
+    return res.status(200).json({ message: "Email deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting email from group:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 app.post("/changePassword", jsonParser, async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -294,6 +359,7 @@ app.post("/changePassword", jsonParser, async (req, res) => {
 });
 
 var nodemailer = require("nodemailer");
+const { group } = require("console");
 
 async function sendEmail(email, OTP) {
   var transporter = nodemailer.createTransport({
