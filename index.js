@@ -1,15 +1,15 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-
+const URL = require("url");
+const cors = require("cors");
 const dbSchema = require("./models/user");
+
 const User = dbSchema.User;
 const Group = dbSchema.Group;
 const FacultyIdea = dbSchema.FacultyIdea;
 const UserOTP = dbSchema.UserOTP;
-
-const URL = require("url");
-const cors = require("cors");
+const JoinRequest = dbSchema.JoinRequest;
 
 const app = express();
 
@@ -29,7 +29,7 @@ db.once("open", function () {
   console.log("DB Connection Successful!");
 });
 
-app.listen(3002, () => console.log("Example app is listening on port 3001."));
+app.listen(3002, () => console.log("Server is running on port 3002."));
 
 app.get("/", (req, res) => {
   res.send("Successful response.");
@@ -145,6 +145,89 @@ app.get("/allFacultyIdeas", jsonParser, async (req, res) => {
   }
 });
 
+app.post("/groupRequest", jsonParser, async (req, res) => {
+  const { id, email } = req.body;
+  const parsedId = parseFloat(String(id));
+
+  const group = await Group.findOne({ id: parsedId });
+  if (group) {
+    try {
+      const leader = await User.findOne({
+        firstName: group.leader.split(" ")[0],
+        lastName: group.leader.split(" ")[1],
+      });
+
+      if (!leader) {
+        return res.status(404).send("Leader not found");
+      }
+      const existingRequest = await JoinRequest.findOne({
+        from: email,
+        groupId: parsedId,
+      });
+      if (existingRequest) {
+        return res.status(409).send("Join request already sent");
+      }
+
+      const joinRequest = new JoinRequest({
+        from: email,
+        to: leader.email,
+        groupId: parsedId,
+      });
+      await joinRequest.save();
+
+      res.status(201).send(joinRequest);
+    } catch (err) {
+      console.error(err);
+      res.status(422).send(err);
+    }
+  } else {
+    res.status(404).send("Group not found");
+  }
+});
+
+app.get("/getLeader", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const groupId = query.id;
+  try {
+    const group = await Group.findOne({ id: groupId });
+    res.status(200).json(group.leader);
+  } catch (error) {
+    console.error("Error fetching join requests:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.delete("/deleteRequest", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const joinRequest = await JoinRequest.findOne({ from: email });
+    if (!joinRequest) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+    await JoinRequest.deleteOne({ from: email });
+    return res
+      .status(200)
+      .json({ joinRequest: "Request deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/allJoinRequests", async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const allJoinRequests = await JoinRequest.find({ to: email });
+
+    res.status(200).json(allJoinRequests);
+  } catch (error) {
+    console.error("Error fetching join requests:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 app.post("/joinGroup", jsonParser, async (req, res) => {
   const { id, email, img } = req.body;
 
@@ -176,34 +259,6 @@ app.post("/joinGroup", jsonParser, async (req, res) => {
     res.status(201).send(group);
   }
 });
-
-// app.post("/joinGroup", jsonParser, async (req, res) => {
-//   const { id, email } = req.body;
-
-//   const parsedId = parseFloat(String(id));
-
-//   const group = await Group.findOne({ id: parsedId });
-//   if (group) {
-//     const emails = group.email;
-
-//     const emailExists = emails.some((e) => e.val == email);
-
-//     if (emailExists) {
-//       res.status(409).send("Email already exists");
-//       return;
-//     }
-
-//     emails.push({ val: email });
-//     group.db.collection("groups").updateOne(
-//       { id: parsedId },
-//       {
-//         $set: { email: emails },
-//         $currentDate: { lastModified: true },
-//       }
-//     );
-//     res.status(201).send(group);
-//   }
-// });
 
 app.get("/userdetails", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
@@ -269,7 +324,6 @@ app.get("/alreadySent", jsonParser, async (req, res) => {
   const email = query.email;
   try {
     const user = await UserOTP.findOne({ email });
-    console.log(user);
     if (!user) {
       return res.status(200).send(false);
     }
@@ -366,10 +420,9 @@ app.post("/isLeader", jsonParser, async (req, res) => {
 });
 
 app.post("/leaveGroup", jsonParser, async (req, res) => {
-  const { email } = req.body;
+  const { email, img } = req.body;
   try {
     const group = await Group.findOne({ "email.val": email });
-    console.log(group);
 
     if (!group) {
       return res.status(404).json({ message: "Group not found" });
@@ -378,6 +431,8 @@ app.post("/leaveGroup", jsonParser, async (req, res) => {
     const updatedEmails = group.email.filter((obj) => obj.val !== email);
     group.email = updatedEmails;
 
+    const updatedImages = group.img.filter((obj) => obj.val != img);
+    group.img = updatedImages;
     await group.save();
 
     return res.status(200).json({ message: "Email deleted successfully" });
