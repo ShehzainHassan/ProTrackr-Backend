@@ -62,6 +62,20 @@ const userOTP = new mongoose.Schema({
   OTP: Number,
 });
 
+const joinRequestSchema = new mongoose.Schema({
+  from: String,
+  to: String,
+  groupId: Number,
+  createdTime: { type: Date, default: Date.now },
+  status: { type: String, default: "pending" },
+});
+
+const JoinRequest = mongoose.model("JoinRequest", joinRequestSchema);
+
+JoinRequest.createCollection().then(function (collection) {
+  console.log("Join Requests Collection is created!");
+});
+
 const UserOTP = mongoose.model("UserOTP", userOTP);
 UserOTP.createCollection().then(function (collection) {});
 
@@ -69,3 +83,4 @@ exports.User = User;
 exports.Group = Group;
 exports.FacultyIdea = FacultyIdea;
 exports.UserOTP = UserOTP;
+exports.JoinRequest = JoinRequest;
