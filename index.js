@@ -145,43 +145,66 @@ app.get("/allFacultyIdeas", jsonParser, async (req, res) => {
   }
 });
 
+app.get("/hasRequested", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const request = await JoinRequest.findOne({ from: email });
+    if (request) {
+      res.status(200).send(true);
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(422).send(error);
+  }
+});
 app.post("/groupRequest", jsonParser, async (req, res) => {
   const { id, email } = req.body;
   const parsedId = parseFloat(String(id));
 
-  const group = await Group.findOne({ id: parsedId });
-  if (group) {
-    try {
-      const leader = await User.findOne({
-        firstName: group.leader.split(" ")[0],
-        lastName: group.leader.split(" ")[1],
-      });
-
-      if (!leader) {
-        return res.status(404).send("Leader not found");
-      }
-      const existingRequest = await JoinRequest.findOne({
-        from: email,
-        groupId: parsedId,
-      });
-      if (existingRequest) {
-        return res.status(409).send("Join request already sent");
-      }
-
-      const joinRequest = new JoinRequest({
-        from: email,
-        to: leader.email,
-        groupId: parsedId,
-      });
-      await joinRequest.save();
-
-      res.status(201).send(joinRequest);
-    } catch (err) {
-      console.error(err);
-      res.status(422).send(err);
+  try {
+    const group = await Group.findOne({ id: parsedId });
+    if (!group) {
+      return res.status(404).send("Group not found");
     }
-  } else {
-    res.status(404).send("Group not found");
+
+    const leader = await User.findOne({
+      firstName: group.leader.split(" ")[0],
+      lastName: group.leader.split(" ")[1],
+    });
+    if (!leader) {
+      return res.status(404).send("Leader not found");
+    }
+
+    const member = await User.findOne({ email });
+    if (!member) {
+      return res.status(404).send("Member not found");
+    }
+
+    const existingRequest = await JoinRequest.findOne({
+      from: email,
+      groupId: parsedId,
+    });
+    if (existingRequest) {
+      return res.status(409).send("Join request already sent");
+    }
+
+    const { firstName, lastName, photo } = member;
+    const joinRequest = new JoinRequest({
+      name: `${firstName} ${lastName}`,
+      from: email,
+      to: leader.email,
+      groupId: parsedId,
+      profile_pic: photo,
+    });
+    await joinRequest.save();
+
+    res.status(201).send(joinRequest);
+  } catch (err) {
+    console.error(err);
+    res.status(422).send("Error finding group");
   }
 });
 

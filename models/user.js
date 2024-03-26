@@ -63,8 +63,10 @@ const userOTP = new mongoose.Schema({
 });
 
 const joinRequestSchema = new mongoose.Schema({
+  name: String,
   from: String,
   to: String,
+  profile_pic: String,
   groupId: Number,
   createdTime: { type: Date, default: Date.now },
   status: { type: String, default: "pending" },
