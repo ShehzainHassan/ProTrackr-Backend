@@ -13,7 +13,7 @@ const cors = require("cors");
 
 const app = express();
 
-const jsonParser = bodyParser.json();
+const jsonParser = bodyParser.json({limit:'30mb'});
 
 app.use(cors());
 
