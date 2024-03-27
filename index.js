@@ -77,6 +77,7 @@ app.post("/signup", jsonParser, async (req, res) => {
     rollNo,
     cgpa,
     email,
+    major,
     sdaGrade,
     creditHours,
     password,
@@ -90,6 +91,7 @@ app.post("/signup", jsonParser, async (req, res) => {
       rollNo,
       cgpa,
       email,
+      major,
       sdaGrade,
       creditHours,
       password,
@@ -272,6 +274,7 @@ app.get("/userdetails", jsonParser, async (req, res) => {
         email: userDetails.email,
         cgpa: userDetails.cgpa,
         sdaGrade: userDetails.sdaGrade,
+        major: userDetails.major,
         creditHours: userDetails.creditHours,
         photo: userDetails.photo,
       });
@@ -387,6 +390,7 @@ app.post("/groupMembers", jsonParser, async (req, res) => {
     const userDetails = users.map((user) => ({
       firstName: user.firstName,
       lastName: user.lastName,
+      major: user.major,
       email: user.email,
     }));
 
