@@ -4,16 +4,19 @@ const bodyParser = require("body-parser");
 const URL = require("url");
 const cors = require("cors");
 const dbSchema = require("./models/user");
+const { ObjectId } = require("mongodb");
 
 const User = dbSchema.User;
 const Group = dbSchema.Group;
 const FacultyIdea = dbSchema.FacultyIdea;
 const UserOTP = dbSchema.UserOTP;
 const JoinRequest = dbSchema.JoinRequest;
+const Faculty = dbSchema.Faculty;
+const AdvisorRequest = dbSchema.AdvisorRequest;
 
 const app = express();
 
-const jsonParser = bodyParser.json();
+const jsonParser = bodyParser.json({ limit: "50mb" });
 
 app.use(cors());
 
@@ -103,11 +106,109 @@ app.post("/signup", jsonParser, async (req, res) => {
   }
 });
 
+// Faculty Signup
+// Route for creating a new faculty entry
+app.post("/facultySignup", jsonParser, async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    email,
+    roomNo,
+    interest_Tags,
+    curr_education,
+    password,
+    photo,
+  } = req.body;
+
+  try {
+    // Check if the email already exists in the database
+    const existingFaculty = await Faculty.findOne({ email });
+
+    if (existingFaculty) {
+      return res.status(409).send("Faculty with this email already exists.");
+    }
+
+    // If faculty with this email doesn't exist, create a new record
+    const newFaculty = new Faculty({
+      firstName,
+      lastName,
+      email,
+      roomNo,
+      interest_Tags,
+      curr_education,
+      password,
+      photo,
+    });
+    await newFaculty.save();
+
+    res.status(201).send(newFaculty); // Return newly created faculty
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+// Route for updating an existing faculty entry
+// Route for updating faculty details
+// Route for updating faculty details
+// Update Faculty Details
+app.put("/updateFacultyDetails", jsonParser, async (req, res) => {
+  const {
+    email,
+    firstName,
+    lastName,
+    curr_education,
+    roomNo,
+    photo,
+    interest_Tags,
+  } = req.body;
+
+  try {
+    const updatedFaculty = await Faculty.findOneAndUpdate(
+      { email },
+      {
+        firstName,
+        lastName,
+        curr_education,
+        roomNo,
+        photo,
+        interest_Tags,
+      },
+      { new: true }
+    );
+
+    if (updatedFaculty) {
+      res.status(200).send(updatedFaculty);
+      console.log("Faculty Edit Success");
+    } else {
+      res.status(404).send("Faculty not found");
+    }
+  } catch (err) {
+    res.status(500).send(err);
+    console.log(err);
+  }
+});
+
 app.get("/allusers", jsonParser, async (req, res) => {
   try {
     const allusers = await User.find({});
     if (allusers) {
       res.status(200).send(allusers);
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+// GET ALL Faculties
+app.get("/allFaculties", jsonParser, async (req, res) => {
+  try {
+    const allFaculties = await Faculty.find({});
+    if (allFaculties) {
+      res.status(200).send(allFaculties);
     } else {
       res.status(200).send(false);
     }
@@ -131,6 +232,22 @@ app.get("/allGroups", jsonParser, async (req, res) => {
   }
 });
 
+app.post("/updateGroup", jsonParser, async (req, res) => {
+  const { email, name, img } = req.body;
+  try {
+    const group = await Group.findOne({ "email.val": email });
+    if (!group) {
+      return res.status(404).send("User group not found");
+    }
+    group.advisor = name;
+    group.Faculty_img = img;
+
+    await group.save();
+  } catch (err) {
+    console.error(err);
+  }
+});
+
 app.get("/allFacultyIdeas", jsonParser, async (req, res) => {
   try {
     const allIdeas = await FacultyIdea.find({});
@@ -151,15 +268,16 @@ app.get("/hasRequested", jsonParser, async (req, res) => {
   try {
     const request = await JoinRequest.findOne({ from: email });
     if (request) {
-      res.status(200).send(true);
+      res.status(200).send({ groupId: request.groupId });
     } else {
-      res.status(200).send(false);
+      res.status(200).send({ groupId: null });
     }
   } catch (error) {
     console.error(error);
     res.status(422).send(error);
   }
 });
+
 app.post("/groupRequest", jsonParser, async (req, res) => {
   const { id, email } = req.body;
   const parsedId = parseFloat(String(id));
@@ -208,6 +326,37 @@ app.post("/groupRequest", jsonParser, async (req, res) => {
   }
 });
 
+app.post("/requestAdvisor", jsonParser, async (req, res) => {
+  const { id, email } = req.body;
+  try {
+    const advisor = await Faculty.findOne({ _id: new ObjectId(id) });
+    if (!advisor) {
+      return res.status(404).send("Advisor not found");
+    }
+
+    const group = await Group.findOne({ "email.val": email });
+    const member = await User.findOne({ email });
+    if (!member) {
+      return res.status(404).send("Member not found");
+    }
+
+    const { firstName, lastName, photo } = member;
+    const advisorRequest = new AdvisorRequest({
+      name: `${firstName} ${lastName}`,
+      from: email,
+      to: advisor.email,
+      groupId: group.id,
+      profile_pic: photo,
+    });
+    await advisorRequest.save();
+
+    res.status(201).send(advisorRequest);
+  } catch (err) {
+    console.error(err);
+    res.status(422).send("Error finding advisor");
+  }
+});
+
 app.get("/getLeader", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const groupId = query.id;
@@ -217,6 +366,24 @@ app.get("/getLeader", jsonParser, async (req, res) => {
   } catch (error) {
     console.error("Error fetching join requests:", error);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.delete("/deleteSupervisionRequest", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const advisorRequest = await AdvisorRequest.findOne({ from: email });
+    if (!advisorRequest) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+    await AdvisorRequest.deleteOne({ from: email });
+    return res
+      .status(200)
+      .json({ advisorRequest: "Request deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -235,6 +402,18 @@ app.delete("/deleteRequest", jsonParser, async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/allAdvisorRequests", async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const allAdvisorRequests = await AdvisorRequest.find({ to: email });
+    res.status(200).json(allAdvisorRequests);
+  } catch (error) {
+    console.error("Error fetching advisor requests:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -283,6 +462,20 @@ app.post("/joinGroup", jsonParser, async (req, res) => {
   }
 });
 
+app.get("/advisordetails", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  try {
+    const userDetails = await Faculty.findOne({ email: query.email });
+    if (!userDetails) {
+      res.status(404).send("User Not Found");
+    }
+    res.status(200).send(userDetails);
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
 app.get("/userdetails", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   try {
@@ -325,6 +518,122 @@ app.get("/getOTP", jsonParser, async (req, res) => {
   }
 });
 
+//FacultyDetails
+app.get("/facultyDetails", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  try {
+    const facultyDetails = await Faculty.findOne({ email: query.email });
+    if (facultyDetails) {
+      res.status(200).send({
+        firstName: facultyDetails.firstName,
+        lastName: facultyDetails.lastName,
+        email: facultyDetails.email,
+        roomNo: facultyDetails.roomNo,
+        interest_Tags: facultyDetails.interest_Tags,
+        curr_education: facultyDetails.curr_education,
+        photo: facultyDetails.photo,
+      });
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+//Faculty Login
+app.post("/facultyLogin", jsonParser, async (req, res) => {
+  const { email, password } = req.body;
+  console.log(email);
+  console.log(password);
+  try {
+    const loggedFaculty = await Faculty.findOne({ email, password });
+    console.log(loggedFaculty);
+    if (loggedFaculty) {
+      console.log("Faculty Successfully Logged In");
+      res.status(201).send({ email, password });
+    } else {
+      console.error("Invalid email or password");
+      res.status(201).send(false);
+    }
+    // const credentials = db.collection('users').find({}, {projection: {email: 1, password: 1, _id:0 }});
+    // let isValidCredentials = false;
+    // credentials.forEach(document => {
+    //     if (email === document.email && password === document.password){
+    //         console.log("Successfully Logged In");
+    //         // console.log(db.collection('users').findOne({}, (error, result) => {console.log(result)}))
+    //         res.status(201).send({email, password});
+    //         return;
+    //     }
+    // })
+    // console.log("Invalid Credentials");
+    // res.status(201).send({});
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+// FacultyFYPIdeas
+// Add, Delete, Get All ideas of logged in Faculty..
+
+app.post("/addFYPidea", jsonParser, async (req, res) => {
+  const { FYP_type, Faculty_img, Tags, description, title, contact, advisor } =
+    req.body;
+
+  try {
+    const newIdea = new FacultyIdea({
+      FYP_type,
+      Faculty_img,
+      Tags,
+      description,
+      title,
+      contact,
+      advisor,
+    });
+    await newIdea.save();
+    res.status(201).send(newIdea);
+  } catch (err) {
+    res.status(422).send(err);
+    console.error(err);
+  }
+});
+
+// Route for fetching ideas of a single logged-in faculty
+app.get("/facultyIdeas", jsonParser, async (req, res) => {
+  const { contact } = req.query;
+  try {
+    const facultyIdeas = await FacultyIdea.find({ contact });
+    if (facultyIdeas) {
+      res.status(200).send(facultyIdeas);
+    } else {
+      res.status(200).send([]);
+    }
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+// Add this route to your backend
+
+// Route for deleting an FYP idea
+app.delete("/deleteFYPidea/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deletedIdea = await FacultyIdea.findByIdAndDelete(id);
+    if (deletedIdea) {
+      res.status(200).send("FYP idea deleted successfully.");
+    } else {
+      res.status(404).send("FYP idea not found.");
+    }
+  } catch (err) {
+    res.status(500).send(err);
+    console.error(err);
+  }
+});
 app.post("/login", jsonParser, async (req, res) => {
   const { email, password } = req.body;
   try {

@@ -1,4 +1,19 @@
 const mongoose = require("mongoose");
+const joinRequestSchema = new mongoose.Schema({
+  name: String,
+  from: String,
+  to: String,
+  profile_pic: String,
+  groupId: Number,
+  createdTime: { type: Date, default: Date.now },
+  status: { type: String, default: "pending" },
+});
+
+const JoinRequest = mongoose.model("JoinRequest", joinRequestSchema);
+
+JoinRequest.createCollection().then(function (collection) {
+  console.log("Join Requests Collection is created!");
+});
 
 const userSchema = new mongoose.Schema({
   firstName: String,
@@ -12,13 +27,44 @@ const userSchema = new mongoose.Schema({
   photo: String,
 });
 
+const requestAdvisorSchema = new mongoose.Schema({
+  name: String,
+  from: String,
+  to: String,
+  profile_pic: String,
+  groupId: Number,
+  createdTime: { type: Date, default: Date.now },
+  status: { type: String, default: "pending" },
+});
+
+const AdvisorRequest = mongoose.model("AdvisorRequest", requestAdvisorSchema);
+
+AdvisorRequest.createCollection().then(function (collection) {
+  console.log("Request Advisor Collection is created!");
+});
+
 const User = mongoose.model("User", userSchema);
 
 User.createCollection().then(function (collection) {
   console.log("Collection is created!");
 });
 
-// module.exports = mongoose.model("User", userSchema);
+const FacultySchema = new mongoose.Schema({
+  firstName: String,
+  lastName: String,
+  email: String,
+  roomNo: String,
+  interest_Tags: [String],
+  curr_education: String,
+  password: String,
+  photo: String,
+});
+
+const Faculty = mongoose.model("Faculty", FacultySchema);
+
+Faculty.createCollection().then(function (collection) {
+  console.log("Faculty Collection is created");
+});
 
 const groupSchema = new mongoose.Schema({
   FYP_type: String,
@@ -62,22 +108,6 @@ const userOTP = new mongoose.Schema({
   OTP: Number,
 });
 
-const joinRequestSchema = new mongoose.Schema({
-  name: String,
-  from: String,
-  to: String,
-  profile_pic: String,
-  groupId: Number,
-  createdTime: { type: Date, default: Date.now },
-  status: { type: String, default: "pending" },
-});
-
-const JoinRequest = mongoose.model("JoinRequest", joinRequestSchema);
-
-JoinRequest.createCollection().then(function (collection) {
-  console.log("Join Requests Collection is created!");
-});
-
 const UserOTP = mongoose.model("UserOTP", userOTP);
 UserOTP.createCollection().then(function (collection) {});
 
@@ -86,3 +116,5 @@ exports.Group = Group;
 exports.FacultyIdea = FacultyIdea;
 exports.UserOTP = UserOTP;
 exports.JoinRequest = JoinRequest;
+exports.Faculty = Faculty;
+exports.AdvisorRequest = AdvisorRequest;
