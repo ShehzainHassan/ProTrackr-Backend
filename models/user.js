@@ -58,6 +58,7 @@ const FacultySchema = new mongoose.Schema({
   curr_education: String,
   password: String,
   photo: String,
+  groupIds: [{ val: String }],
 });
 
 const Faculty = mongoose.model("Faculty", FacultySchema);

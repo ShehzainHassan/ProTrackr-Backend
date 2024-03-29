@@ -152,6 +152,38 @@ app.post("/facultySignup", jsonParser, async (req, res) => {
 // Route for updating faculty details
 // Route for updating faculty details
 // Update Faculty Details
+
+app.get('/isRegisteredFacultyEmail', jsonParser, async (req, res)=>{
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try{
+      const faculty = await Faculty.findOne({email});
+      if (faculty){
+        res.status(200).send(true)
+      } else {
+        res.status(200).send(false)
+      }
+  } catch (err){
+    console.error(err)
+  }
+})
+app.post("/changeFacultyPassword", jsonParser, async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await Faculty.findOne({ email });
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.status(200).send("Password updated successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
 app.put("/updateFacultyDetails", jsonParser, async (req, res) => {
   const {
     email,
@@ -430,17 +462,43 @@ app.get("/allJoinRequests", async (req, res) => {
   }
 });
 
+app.post('/updateFaculty', jsonParser, async (req, res) => {
+  const { group_id, facultyId } = req.body;
+  console.log(group_id)
+  console.log(facultyId)
+  try {
+    const faculty = await Faculty.findOne({ _id: facultyId });
+    console.log(faculty)
+    if (faculty) {
+      const groupIdExists = faculty.groupIds.some(
+        (groupObj) => groupObj.val === group_id
+      );
+
+      if (!groupIdExists) {
+        faculty.groupIds.push({ val: group_id });
+        await faculty.save();
+        res.status(200).json({ message: 'Group ID added successfully' });
+      } else {
+        res.status(400).json({ message: 'Group ID already exists' });
+      }
+    } else {
+      res.status(404).json({ message: 'Faculty not found' });
+    }
+  } catch (error) {
+    console.error('Error updating faculty:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 app.post("/joinGroup", jsonParser, async (req, res) => {
   const { id, email, img } = req.body;
-
   const parsedId = parseFloat(String(id));
-
   const group = await Group.findOne({ id: parsedId });
+
   if (group) {
     const emails = group.email;
     const images = group.img;
-
-    const emailExists = emails.some((e) => e.val == email);
+    const emailExists = emails.some((e) => e.val === email);
 
     if (emailExists) {
       res.status(409).send("Email already exists");
@@ -450,15 +508,23 @@ app.post("/joinGroup", jsonParser, async (req, res) => {
     emails.push({ val: email });
     images.push({ val: img });
 
-    await Group.updateOne(
+    const updatedGroup = await Group.findOneAndUpdate(
       { id: parsedId },
       {
         $set: { email: emails, img: images },
         $currentDate: { lastModified: true },
-      }
+      },
+      { new: true }
     );
 
-    res.status(201).send(group);
+    // Check if the group has 3 members now
+    if (updatedGroup.email.length === 3) {
+      // Update the group status to "LOCKED"
+      updatedGroup.Status = "LOCKED";
+      await updatedGroup.save();
+    }
+
+    res.status(201).send(updatedGroup);
   }
 });
 
@@ -729,6 +795,8 @@ app.post("/groupMembers", jsonParser, async (req, res) => {
   }
 });
 
+
+
 app.post("/isLeader", jsonParser, async (req, res) => {
   const { email } = req.body;
   try {
@@ -748,6 +816,88 @@ app.post("/isLeader", jsonParser, async (req, res) => {
   } catch (error) {
     console.error("Error determining leader status:", error);
     return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/fetchFacultyGroups", jsonParser, async (req, res) => {
+  const { email } = req.query; 
+
+  try {
+    const faculty = await Faculty.findOne({ email });
+
+    if (!faculty) {
+      return res.status(404).json({ message: "Faculty not found" });
+    }
+
+    const groups = await Group.find({ id: { $in: faculty.groupIds.map(g => g.val) } });
+
+    if (!groups || groups.length === 0) {
+      return res.status(404).json({ message: "No groups found for the faculty" });
+    }
+
+    res.status(200).json(groups);
+  } catch (error) {
+    console.error("Error fetching faculty groups:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get("/fetchFacultyGroupsNotif", jsonParser, async (req, res) => {
+  const { email } = req.query; 
+  console.log(email)
+  try {
+    const faculty = await Faculty.findOne({ email });
+    console.log(faculty)
+    if (!faculty) {
+      return res.status(404).json({ message: "Faculty not found" });
+    }
+
+    const groups = await AdvisorRequest.find({ groupId: { $in: faculty.groupIds.map(g => g.val) } });
+    const __id = groups.map(g => g.groupId)[0]
+    console.log(__id)
+    console.log(groups)
+    console.log(groups.groupId)
+    const groupDetails = await Group.findOne({id: __id})
+    if (!groups || groups.length === 0) {
+      return res.status(404).json({ message: "No groups found for the faculty" });
+    }
+    console.log(groupDetails)
+    res.status(200).json(groupDetails);
+  } catch (error) {
+    console.error("Error fetching faculty groups:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.get('/getGroupDetails', jsonParser, async (req, res)=>{
+  const query = URL.parse(req.url, true).query;
+  const id = query.id;
+  console.log(id)
+  try {
+    const group = await Group.findOne({groupId: id})
+    console.log(group)
+    if (group){
+      res.status(200).send(group)
+    } else {
+      res.status(200).send(null)
+    }
+  } catch (err){
+    console.error(err)
+  }
+})
+
+app.get("/isRegisteredStudentEmail", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const user = await User.findOne({ email });
+    if (user) {
+      res.status(200).send(true);
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (err) {
+    console.error(err);
   }
 });
 
@@ -826,3 +976,18 @@ async function sendEmail(email, OTP) {
     console.log(error);
   }
 }
+
+app.get("/getUserGroup", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const group = await Group.findOne({ "email.val": email });
+    if (group) {
+      res.status(200).send(group);
+    } else {
+      res.status(200).send(null);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+});
