@@ -16,11 +16,7 @@ const AdvisorRequest = dbSchema.AdvisorRequest;
 
 const app = express();
 
-<<<<<<< HEAD
-const jsonParser = bodyParser.json({limit:'30mb'});
-=======
 const jsonParser = bodyParser.json({ limit: "50mb" });
->>>>>>> 5d8c470ef2da602b20c044011c68e9f4dd00684e
 
 app.use(cors());
 
@@ -84,7 +80,6 @@ app.post("/signup", jsonParser, async (req, res) => {
     rollNo,
     cgpa,
     email,
-    major,
     sdaGrade,
     creditHours,
     password,
@@ -98,7 +93,6 @@ app.post("/signup", jsonParser, async (req, res) => {
       rollNo,
       cgpa,
       email,
-      major,
       sdaGrade,
       creditHours,
       password,
@@ -560,7 +554,6 @@ app.get("/userdetails", jsonParser, async (req, res) => {
         email: userDetails.email,
         cgpa: userDetails.cgpa,
         sdaGrade: userDetails.sdaGrade,
-        major: userDetails.major,
         creditHours: userDetails.creditHours,
         photo: userDetails.photo,
       });
@@ -792,7 +785,6 @@ app.post("/groupMembers", jsonParser, async (req, res) => {
     const userDetails = users.map((user) => ({
       firstName: user.firstName,
       lastName: user.lastName,
-      major: user.major,
       email: user.email,
     }));
 
@@ -983,9 +975,6 @@ async function sendEmail(email, OTP) {
   } catch (error) {
     console.log(error);
   }
-<<<<<<< HEAD
-}
-=======
 }
 
 app.get("/getUserGroup", jsonParser, async (req, res) => {
@@ -1002,4 +991,3 @@ app.get("/getUserGroup", jsonParser, async (req, res) => {
     console.error(err);
   }
 });
->>>>>>> 5d8c470ef2da602b20c044011c68e9f4dd00684e
