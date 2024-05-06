@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
   email: String,
   cgpa: Number,
   sdaGrade: String,
+  major: String,
   creditHours: Number,
   password: String,
   photo: String,
