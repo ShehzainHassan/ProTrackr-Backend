@@ -6,6 +6,7 @@ const otpRoutes = require("./otp");
 const joinRequestRoutes = require("./joinRequests");
 const facultyIdeasRoutes = require("./facultyIdeas");
 const advisorRequestRoutes = require("./advisorRequests");
+const announcementRoutes = require("./annoucements");
 
 server.use(studentRoutes);
 server.use(groupRoutes);
@@ -14,3 +15,4 @@ server.use(otpRoutes);
 server.use(joinRequestRoutes);
 server.use(facultyIdeasRoutes);
 server.use(advisorRequestRoutes);
+server.use(announcementRoutes);

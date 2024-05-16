@@ -39,6 +39,7 @@ app.post("/facultySignup", jsonParser, async (req, res) => {
       curr_education,
       password,
       photo,
+      roles: ["Supervisor"],
     });
     await newFaculty.save();
 
@@ -93,6 +94,26 @@ app.get("/isRegisteredFacultyEmail", jsonParser, async (req, res) => {
   try {
     const faculty = await Faculty.findOne({ email });
     if (faculty) {
+      res.status(200).send(true);
+    } else {
+      res.status(200).send(false);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+app.get("/isCommiteeMember", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const email = query.email;
+  try {
+    const faculty = await Faculty.findOne({ email });
+    if (!faculty) {
+      return res.status(404).send("Faculty not found.");
+    }
+    const isCommitteeMember = faculty.roles.includes("Committee_Member");
+
+    if (isCommitteeMember) {
       res.status(200).send(true);
     } else {
       res.status(200).send(false);

@@ -59,6 +59,7 @@ const FacultySchema = new mongoose.Schema({
   password: String,
   photo: String,
   groupIds: [{ val: String }],
+  roles: [String],
 });
 
 const Faculty = mongoose.model("Faculty", FacultySchema);
@@ -112,6 +113,19 @@ const userOTP = new mongoose.Schema({
 const UserOTP = mongoose.model("UserOTP", userOTP);
 UserOTP.createCollection().then(function (collection) {});
 
+const announcement = new mongoose.Schema({
+  announcementType: String,
+  dateTime: String,
+  description: String,
+  title: String,
+  postedBy: String,
+  isRead: Boolean,
+  createdTime: { type: Date, default: Date.now },
+  Comments: [{ commentor: String, val: String }],
+});
+const Announcement = mongoose.model("Announcement", announcement);
+Announcement.createCollection().then(function (collection) {});
+
 exports.User = User;
 exports.Group = Group;
 exports.FacultyIdea = FacultyIdea;
@@ -119,3 +133,4 @@ exports.UserOTP = UserOTP;
 exports.JoinRequest = JoinRequest;
 exports.Faculty = Faculty;
 exports.AdvisorRequest = AdvisorRequest;
+exports.Announcement = Announcement;
