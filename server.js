@@ -18,9 +18,10 @@ firebaseApp.initializeApp(firebaseConfig);
 
 app.use(cors());
 
-mongoose.connect("mongodb://localhost:27017/ProTrackr", {
+mongoose.connect("mongodb://127.0.0.1:27017", {
   useUnifiedTopology: true,
 });
+
 
 const db = mongoose.connection;
 

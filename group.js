@@ -4,8 +4,12 @@ const URL = require("url");
 const dbSchema = require("./models/user");
 const User = dbSchema.User;
 const Group = dbSchema.Group;
+const { sendMeetingEmails } = require("./scheduleMeet")
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
+
+
+
 
 app.post("/saveGroup", jsonParser, async (req, res) => {
   const {
@@ -238,6 +242,25 @@ app.get("/getUserGroup", jsonParser, async (req, res) => {
     }
   } catch (err) {
     console.error(err);
+  }
+});
+
+
+app.post("/scheduleMeeting", jsonParser, async (req, res) => {
+  try {
+    const { title, description, date, time, attendees } = req.body;
+
+    if (!title || !description || !date || !time || !attendees) {
+      return res.status(400).send("Missing required fields");
+    }
+
+    // Send emails to attendees
+    await sendMeetingEmails(attendees, title, description, date, time);
+
+    res.status(201).send({ message: "Meeting invitations sent successfully" });
+  } catch (error) {
+    console.error("Error sending meeting invitations:", error);
+    res.status(500).send("Internal Server Error");
   }
 });
 

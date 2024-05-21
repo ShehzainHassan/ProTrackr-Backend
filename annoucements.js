@@ -11,7 +11,7 @@ const { getStorage, ref, uploadBytes } = firebaseStorage;
 
 const storage = getStorage();
 app.use(fileupload());
-app.post("/addAnnouncement", async (req, res) => {
+app.post("/addAnnouncement", jsonParser, async (req, res) => {
   const { announcementType, dateTime, description, title, postedBy, file } =
     req.body;
   let fileUrl = null;
