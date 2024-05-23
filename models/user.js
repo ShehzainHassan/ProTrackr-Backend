@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+
 const joinRequestSchema = new mongoose.Schema({
   name: String,
   from: String,
@@ -123,9 +125,33 @@ const announcement = new mongoose.Schema({
   isRead: Boolean,
   createdTime: { type: Date, default: Date.now },
   Comments: [{ commentor: String, val: String }],
+  filePath: String,
 });
 const Announcement = mongoose.model("Announcement", announcement);
 Announcement.createCollection().then(function (collection) {});
+
+const adminSchema = new mongoose.Schema({
+  email: String,
+  password: String,
+});
+const Admin = mongoose.model("Admin", adminSchema);
+Admin.createCollection().then(async function (collection) {
+  try {
+    const existingAdmin = await Admin.findOne({ email: "admin@lhr.nu.edu.pk" });
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash("top_secret", 10);
+      await Admin.create({
+        email: "admin@lhr.nu.edu.pk",
+        password: hashedPassword,
+      });
+      console.log("Admin credentials inserted successfully.");
+    } else {
+      console.log("Admin credentials already exist.");
+    }
+  } catch (error) {
+    console.error("Error inserting admin credentials:", error);
+  }
+});
 
 exports.User = User;
 exports.Group = Group;
@@ -135,3 +161,4 @@ exports.JoinRequest = JoinRequest;
 exports.Faculty = Faculty;
 exports.AdvisorRequest = AdvisorRequest;
 exports.Announcement = Announcement;
+exports.Admin = Admin;

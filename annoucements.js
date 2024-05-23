@@ -5,9 +5,42 @@ const dbSchema = require("./models/user");
 const Announcement = dbSchema.Announcement;
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
+const fileupload = require("express-fileupload");
+const firebaseStorage = require("firebase/storage");
+const { getStorage, ref, uploadBytes } = firebaseStorage;
 
+const storage = getStorage();
+app.use(fileupload());
 app.post("/addAnnouncement", jsonParser, async (req, res) => {
-  const { announcementType, dateTime, description, title, postedBy } = req.body;
+  const { announcementType, dateTime, description, title, postedBy, file } =
+    req.body;
+  let fileUrl = null;
+  console.log("File: ", file);
+  if (file != "null") {
+    const uploadedFile = req?.files?.file;
+
+    console.log("File type: ", uploadedFile?.mimetype);
+    if (
+      !(
+        uploadedFile?.mimetype?.includes("pdf") ||
+        uploadedFile?.mimetype?.includes("docx") ||
+        uploadedFile?.mimetype?.includes("doc") ||
+        uploadedFile?.mimetype?.includes("xlsx") ||
+        uploadedFile?.mimetype?.includes("txt")
+      )
+    ) {
+      res.status(400).send("File type not allowed");
+    }
+    if (uploadedFile?.size > 10 * 1024 * 1024) {
+      res.status(400).send("File size too large");
+    }
+
+    console.log("UPLOADED FILE", uploadedFile);
+    const fileRef = ref(storage, uploadedFile?.name);
+    await uploadBytes(fileRef, uploadedFile?.data);
+    fileUrl = await firebaseStorage.getDownloadURL(fileRef);
+    console.log("File Url:", fileUrl);
+  }
   try {
     const announcement = new Announcement({
       announcementType,
@@ -16,6 +49,7 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
       title,
       postedBy,
       isRead: false,
+      filePath: fileUrl,
     });
     await announcement.save();
     res.status(201).send(announcement);

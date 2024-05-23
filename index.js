@@ -7,7 +7,7 @@ const joinRequestRoutes = require("./joinRequests");
 const facultyIdeasRoutes = require("./facultyIdeas");
 const advisorRequestRoutes = require("./advisorRequests");
 const announcementRoutes = require("./annoucements");
-
+const adminRoutes = require("./admin");
 server.use(studentRoutes);
 server.use(groupRoutes);
 server.use(facultyRoutes);
@@ -16,3 +16,4 @@ server.use(joinRequestRoutes);
 server.use(facultyIdeasRoutes);
 server.use(advisorRequestRoutes);
 server.use(announcementRoutes);
+server.use(adminRoutes);
