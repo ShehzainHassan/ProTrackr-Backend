@@ -130,6 +130,15 @@ const announcement = new mongoose.Schema({
 const Announcement = mongoose.model("Announcement", announcement);
 Announcement.createCollection().then(function (collection) {});
 
+const pastFYPSchema = new mongoose.Schema({
+  UploadedBy: String,
+  createdTime: { type: Date, default: Date.now },
+  filePath: String,
+});
+
+const PastFYP = mongoose.model('PastFYP', pastFYPSchema);
+PastFYP.createCollection().then(function (collection) {});
+
 const adminSchema = new mongoose.Schema({
   email: String,
   password: String,
@@ -161,4 +170,5 @@ exports.JoinRequest = JoinRequest;
 exports.Faculty = Faculty;
 exports.AdvisorRequest = AdvisorRequest;
 exports.Announcement = Announcement;
+exports.PastFYP = PastFYP;
 exports.Admin = Admin;
