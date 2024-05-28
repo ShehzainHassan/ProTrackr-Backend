@@ -10,6 +10,7 @@ app.post("/signup", jsonParser, async (req, res) => {
   const {
     firstName,
     lastName,
+    major,
     rollNo,
     cgpa,
     email,
@@ -23,6 +24,7 @@ app.post("/signup", jsonParser, async (req, res) => {
     const user = new User({
       firstName,
       lastName,
+      major,
       rollNo,
       cgpa,
       email,
@@ -61,6 +63,7 @@ app.get("/userdetails", jsonParser, async (req, res) => {
       res.status(200).send({
         firstName: userDetails.firstName,
         lastName: userDetails.lastName,
+        major: userDetails.major,
         rollNo: userDetails.rollNo,
         email: userDetails.email,
         cgpa: userDetails.cgpa,

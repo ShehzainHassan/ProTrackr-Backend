@@ -20,11 +20,11 @@ JoinRequest.createCollection().then(function (collection) {
 const userSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
+  major: String,
   rollNo: String,
   email: String,
   cgpa: Number,
   sdaGrade: String,
-  major: String,
   creditHours: Number,
   password: String,
   photo: String,
