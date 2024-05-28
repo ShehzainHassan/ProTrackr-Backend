@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const URL = require("url");
 const dbSchema = require("./models/user");
 const Announcement = dbSchema.Announcement;
+const PastFYP = dbSchema.PastFYP;
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
 const fileupload = require("express-fileupload");
@@ -12,6 +13,7 @@ const { getStorage, ref, uploadBytes } = firebaseStorage;
 const storage = getStorage();
 app.use(fileupload());
 app.post("/addAnnouncement", jsonParser, async (req, res) => {
+  console.log("ANNOUNCEMENT");
   const { announcementType, dateTime, description, title, postedBy, file } =
     req.body;
   let fileUrl = null;
@@ -26,7 +28,13 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
         uploadedFile?.mimetype?.includes("docx") ||
         uploadedFile?.mimetype?.includes("doc") ||
         uploadedFile?.mimetype?.includes("xlsx") ||
-        uploadedFile?.mimetype?.includes("txt")
+        uploadedFile?.mimetype?.includes("txt") ||
+        uploadedFile?.mimetype?.includes("ppt") ||
+        uploadedFile?.mimetype?.includes("pptx") ||
+        uploadedFile?.mimetype?.includes("jpeg") ||
+        uploadedFile?.mimetype?.includes("jpg") ||
+        uploadedFile?.mimetype?.includes("png") ||
+        uploadedFile?.mimetype?.includes("gif")
       )
     ) {
       res.status(400).send("File type not allowed");
@@ -105,6 +113,85 @@ app.post("/addComment/:id", jsonParser, async (req, res) => {
     return res.status(201).send(announcement);
   } catch (err) {
     return res.status(500).send(err);
+  }
+});
+
+app.post("/UploadPastFYP", jsonParser, async (req, res) => {
+  console.log("BODY: ", req.body);
+  const { UploadedBy, file } = req.body;
+  let fileUrl = null;
+  console.log("File: ", file);
+  if (file != "null") {
+    const uploadedFile = req?.files?.file;
+
+    console.log("File type: ", uploadedFile?.mimetype);
+    if (
+      !(
+        uploadedFile?.mimetype?.includes("pdf") ||
+        uploadedFile?.mimetype?.includes("docx") ||
+        uploadedFile?.mimetype?.includes("doc") ||
+        uploadedFile?.mimetype?.includes("xlsx") ||
+        uploadedFile?.mimetype?.includes("txt")  ||
+        uploadedFile?.mimetype?.includes("ppt") ||
+        uploadedFile?.mimetype?.includes("pptx") ||
+        uploadedFile?.mimetype?.includes("jpeg") ||
+        uploadedFile?.mimetype?.includes("jpg") ||
+        uploadedFile?.mimetype?.includes("png") ||
+        uploadedFile?.mimetype?.includes("gif")
+      )
+    ) {
+      res.status(400).send("File type not allowed");
+    }
+    if (uploadedFile?.size > 10 * 1024 * 1024) {
+      res.status(400).send("File size too large");
+    }
+
+    console.log("UPLOADED FILE", uploadedFile);
+    const fileRef = ref(storage, uploadedFile?.name);
+    await uploadBytes(fileRef, uploadedFile?.data);
+    fileUrl = await firebaseStorage.getDownloadURL(fileRef);
+    console.log("File Url:", fileUrl);
+  }
+  try {
+    const pastfyp = new PastFYP({
+      UploadedBy,
+      filePath: fileUrl,
+    });
+    await pastfyp.save();
+    res.status(201).send(pastfyp);
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+app.delete("/deletePastFYP", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const id = query.id;
+  try {
+    const pastfyp = await PastFYP.findOneAndUpdate(
+      { _id: id },
+      { upsert: false }
+    );
+    if (!pastfyp) {
+      return res.status(404).json({ message: "FYP not found" });
+    }
+    return res.status(200).json({ announcement: " FYP deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting FYP ", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/getPastFYPs", jsonParser, async (req, res) => {
+  try {
+    const allpastfyps = await PastFYP.find({});
+    if (allpastfyps) {
+      res.status(200).send(allpastfyps);
+    }
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
   }
 });
 module.exports = app;
