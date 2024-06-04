@@ -123,6 +123,7 @@ const announcement = new mongoose.Schema({
   title: String,
   postedBy: String,
   isRead: Boolean,
+  // email: [{ val: String }],
   createdTime: { type: Date, default: Date.now },
   Comments: [{ commentor: String, val: String }],
   filePath: String,
