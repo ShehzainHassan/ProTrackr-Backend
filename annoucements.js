@@ -69,8 +69,10 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
 app.delete("/deleteAnnouncement", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const id = query.id;
+  // const email = query.email;
   try {
     const announcement = await Announcement.findOneAndUpdate(
+      // { _id: id ,  userEmail: email},
       { _id: id },
       { $set: { isRead: true } },
       { upsert: false }
