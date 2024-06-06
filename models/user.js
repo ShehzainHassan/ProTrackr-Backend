@@ -28,6 +28,21 @@ const userSchema = new mongoose.Schema({
   creditHours: Number,
   password: String,
   photo: String,
+  fypStartSemester: {
+    type: String,
+    default: "Spring 2024",
+  },
+  fypType: {
+    type: String,
+    default: "FYP-1",
+  },
+  batch: {
+    type: String,
+  },
+  isDisabled: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const requestAdvisorSchema = new mongoose.Schema({
@@ -83,6 +98,16 @@ const groupSchema = new mongoose.Schema({
   leader: String,
   title: String,
   advisor: String,
+  evaluators: {
+    type: [String],
+  },
+  hasAssignedEvaluators: {
+    type: Boolean,
+    default: false,
+  },
+  advisorId: {
+    type: String,
+  },
 });
 
 const Group = mongoose.model("Group", groupSchema);
@@ -137,7 +162,7 @@ const pastFYPSchema = new mongoose.Schema({
   filePath: String,
 });
 
-const PastFYP = mongoose.model('PastFYP', pastFYPSchema);
+const PastFYP = mongoose.model("PastFYP", pastFYPSchema);
 PastFYP.createCollection().then(function (collection) {});
 
 const adminSchema = new mongoose.Schema({
@@ -163,6 +188,17 @@ Admin.createCollection().then(async function (collection) {
   }
 });
 
+const panelSchema = new mongoose.Schema({
+  faculties: {
+    type: [],
+  },
+  groups: {
+    type: [String],
+  },
+});
+const Panel = mongoose.model("Panel", panelSchema);
+Panel.createCollection().then(function (collection) {});
+
 exports.User = User;
 exports.Group = Group;
 exports.FacultyIdea = FacultyIdea;
@@ -173,3 +209,4 @@ exports.AdvisorRequest = AdvisorRequest;
 exports.Announcement = Announcement;
 exports.PastFYP = PastFYP;
 exports.Admin = Admin;
+exports.Panel = Panel;

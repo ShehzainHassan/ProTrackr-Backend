@@ -20,6 +20,7 @@ app.post("/signup", jsonParser, async (req, res) => {
     photo,
   } = req.body;
 
+  const batch = rollNo ? `20${rollNo.substring(0, 2)}` : null;
   try {
     const user = new User({
       firstName,
@@ -32,6 +33,7 @@ app.post("/signup", jsonParser, async (req, res) => {
       creditHours,
       password,
       photo,
+      batch,
     });
     user.save();
     res.status(201).send(user);
@@ -60,17 +62,7 @@ app.get("/userdetails", jsonParser, async (req, res) => {
   try {
     const userDetails = await User.findOne({ email: query.email });
     if (userDetails) {
-      res.status(200).send({
-        firstName: userDetails.firstName,
-        lastName: userDetails.lastName,
-        major: userDetails.major,
-        rollNo: userDetails.rollNo,
-        email: userDetails.email,
-        cgpa: userDetails.cgpa,
-        sdaGrade: userDetails.sdaGrade,
-        creditHours: userDetails.creditHours,
-        photo: userDetails.photo,
-      });
+      res.status(200).send(userDetails);
     } else {
       res.status(200).send(false);
     }
@@ -85,11 +77,21 @@ app.post("/login", jsonParser, async (req, res) => {
   try {
     const loggedUser = await User.findOne({ email, password });
     if (loggedUser) {
+      if (loggedUser.isDisabled) {
+        console.log("Logged User: ", loggedUser.isDisabled);
+        return res.status(403).send({
+          message:
+            "Your account is disabled by system administrator. Please contact system administrator",
+          status: false,
+        });
+      }
       console.log("Successfully Logged In");
-      res.status(201).send({ email, password });
+      res.status(201).send({ email, password, status: true });
     } else {
       console.error("Invalid email or password");
-      res.status(201).send(false);
+      res
+        .status(401)
+        .send({ message: "Invalid email or password", status: false });
     }
   } catch (err) {
     res.status(422).send(err);
@@ -130,4 +132,24 @@ app.post("/changePassword", jsonParser, async (req, res) => {
   }
 });
 
+app.put("/changeAccountStatus", jsonParser, async (req, res) => {
+  try {
+    const { id, status } = req.body;
+    const student = await User.findOne({ _id: id });
+    if (!student) {
+      return res.status(404).send("Student not found");
+    }
+    if (status === "enable") {
+      student.isDisabled = false;
+    } else {
+      student.isDisabled = true;
+    }
+    console.log(student);
+    await student.save();
+    return res.status(200).send("Account status updated successfully");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal Server Error");
+  }
+});
 module.exports = app;

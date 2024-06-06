@@ -178,6 +178,39 @@ app.put("/updateFacultyDetails", jsonParser, async (req, res) => {
   }
 });
 
+app.put("/assignCommitteeMember", jsonParser, async (req, res) => {
+  try {
+    const faculty = await Faculty.findOne({ _id: req.body._id });
+    console.log(faculty);
+    faculty.roles.push("Committee_Member");
+    await faculty.save();
+    res.status(200).send("Committee member assigned successfully.");
+  } catch (err) {
+    console.error("Error: ", err);
+    res.status(500).send(err);
+  }
+});
+
+app.delete("/removeCommitteeMember/:id", jsonParser, async (req, res) => {
+  try {
+    console.log(req.params);
+    const faculty = await Faculty.findOne({ _id: req.params.id });
+    console.log(faculty);
+    const index = faculty.roles.indexOf("Committee_Member");
+
+    if (index > -1) {
+      faculty.roles.splice(index, 1);
+    }
+
+    await faculty.save();
+
+    res.status(200).send("Committee member removed successfully.");
+  } catch (err) {
+    console.error("Error: ", err);
+    res.status(500).send(err);
+  }
+});
+
 // GET ALL Faculties
 app.get("/allFaculties", jsonParser, async (req, res) => {
   try {
@@ -190,6 +223,25 @@ app.get("/allFaculties", jsonParser, async (req, res) => {
   } catch (err) {
     res.status(422).send(err);
     console.log(err);
+  }
+});
+
+app.post("/groupsToShow", jsonParser, async (req, res) => {
+  try {
+    const facultyIDs = req.body;
+    const groupIds = [];
+    for (let i = 0; i < facultyIDs.length; i++) {
+      const faculty = await Faculty.findOne({ _id: facultyIDs[i] });
+      if (faculty && faculty.groupIds) {
+        groupIds.push(...faculty.groupIds.map((group) => +group.val));
+      }
+    }
+    console.log(groupIds);
+    const group = await Group.find({ id: { $nin: groupIds } });
+    res.status(201).send(group);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -207,6 +259,7 @@ app.post("/updateFaculty", jsonParser, async (req, res) => {
 
       if (!groupIdExists) {
         faculty.groupIds.push({ val: group_id });
+        faculty.slotsLeft -= 1;
         await faculty.save();
         res.status(200).json({ message: "Group ID added successfully" });
       } else {
@@ -218,6 +271,25 @@ app.post("/updateFaculty", jsonParser, async (req, res) => {
   } catch (error) {
     console.error("Error updating faculty:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.put("/addEvaluatorRole", jsonParser, async (req, res) => {
+  const { facultyId } = req.body;
+  try {
+    const faculty = await Faculty.findById(facultyId);
+    if (!faculty) {
+      return res.status(404).json({ message: "Faculty member not found" });
+    }
+    if (!faculty.roles.includes("Evaluator")) {
+      faculty.roles.push("Evaluator");
+      await faculty.save();
+    }
+    res
+      .status(200)
+      .json({ message: "Evaluator role added successfully", faculty });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating roles", error });
   }
 });
 
