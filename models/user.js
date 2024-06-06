@@ -98,6 +98,16 @@ const groupSchema = new mongoose.Schema({
   leader: String,
   title: String,
   advisor: String,
+  evaluators: {
+    type: [String],
+  },
+  hasAssignedEvaluators: {
+    type: Boolean,
+    default: false,
+  },
+  advisorId: {
+    type: String,
+  },
 });
 
 const Group = mongoose.model("Group", groupSchema);
@@ -178,6 +188,17 @@ Admin.createCollection().then(async function (collection) {
   }
 });
 
+const panelSchema = new mongoose.Schema({
+  faculties: {
+    type: [],
+  },
+  groups: {
+    type: [String],
+  },
+});
+const Panel = mongoose.model("Panel", panelSchema);
+Panel.createCollection().then(function (collection) {});
+
 exports.User = User;
 exports.Group = Group;
 exports.FacultyIdea = FacultyIdea;
@@ -188,3 +209,4 @@ exports.AdvisorRequest = AdvisorRequest;
 exports.Announcement = Announcement;
 exports.PastFYP = PastFYP;
 exports.Admin = Admin;
+exports.Panel = Panel;
