@@ -4,7 +4,6 @@ const URL = require("url");
 const dbSchema = require("./models/user");
 const User = dbSchema.User;
 const Group = dbSchema.Group;
-const { sendMeetingEmails } = require("./scheduleMeet");
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
 

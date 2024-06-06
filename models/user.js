@@ -28,6 +28,21 @@ const userSchema = new mongoose.Schema({
   creditHours: Number,
   password: String,
   photo: String,
+  fypStartSemester: {
+    type: String,
+    default: "Spring 2024",
+  },
+  fypType: {
+    type: String,
+    default: "FYP-1",
+  },
+  batch: {
+    type: String,
+  },
+  isDisabled: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const requestAdvisorSchema = new mongoose.Schema({
@@ -137,7 +152,7 @@ const pastFYPSchema = new mongoose.Schema({
   filePath: String,
 });
 
-const PastFYP = mongoose.model('PastFYP', pastFYPSchema);
+const PastFYP = mongoose.model("PastFYP", pastFYPSchema);
 PastFYP.createCollection().then(function (collection) {});
 
 const adminSchema = new mongoose.Schema({
