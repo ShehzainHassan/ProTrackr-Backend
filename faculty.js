@@ -161,7 +161,8 @@ app.put("/updateFacultyDetails", jsonParser, async (req, res) => {
         curr_education,
         roomNo,
         photo,
-        interest_Tags: interest_Tags.map((tag) => tag.value), // Map the interest_Tags array to extract only the value property
+        interest_Tags: interest_Tags.map((tag) => tag.value),
+         // Map the interest_Tags array to extract only the value property
       },
       { new: true }
     );
