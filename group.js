@@ -4,12 +4,9 @@ const URL = require("url");
 const dbSchema = require("./models/user");
 const User = dbSchema.User;
 const Group = dbSchema.Group;
-const { sendMeetingEmails } = require("./scheduleMeet")
+const { sendMeetingEmails } = require("./scheduleMeet");
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
-
-
-
 
 app.post("/saveGroup", jsonParser, async (req, res) => {
   const {
@@ -62,18 +59,38 @@ app.get("/allGroups", jsonParser, async (req, res) => {
 });
 
 app.post("/updateGroup", jsonParser, async (req, res) => {
-  const { email, name, img } = req.body;
+  const { advisorId, email, name, img } = req.body;
   try {
     const group = await Group.findOne({ "email.val": email });
     if (!group) {
       return res.status(404).send("User group not found");
     }
-    group.advisor = name;
+    (group.advisorId = advisorId), (group.advisor = name);
     group.Faculty_img = img;
 
     await group.save();
   } catch (err) {
     console.error(err);
+  }
+});
+
+app.post("/addEvaluators", jsonParser, async (req, res) => {
+  try {
+    const { selectedFacultyIds, selectedGroupIds } = req.body;
+    for (let i = 0; i < selectedGroupIds.length; i++) {
+      const group = await Group.findById(selectedGroupIds[i]);
+      console.log("Group: ", group);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found." });
+      }
+      group.evaluators.push(...selectedFacultyIds);
+      await group.save();
+    }
+
+    res.status(200).json({ message: "Evaluators added successfully." });
+  } catch (error) {
+    console.error("Error adding evaluators:", error);
+    res.status(500).json({ error: "Error adding evaluators." });
   }
 });
 
@@ -230,6 +247,23 @@ app.post("/leaveGroup", jsonParser, async (req, res) => {
   }
 });
 
+app.put("/updateGroupEvaluators", jsonParser, async (req, res) => {
+  const { groupId } = req.body;
+  try {
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+    group.hasAssignedEvaluators = true;
+    await group.save();
+    res
+      .status(200)
+      .json({ message: "Group has assigned evaluator successfully", group });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating group", error });
+  }
+});
+
 app.get("/getUserGroup", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const email = query.email;
@@ -244,7 +278,6 @@ app.get("/getUserGroup", jsonParser, async (req, res) => {
     console.error(err);
   }
 });
-
 
 app.post("/scheduleMeeting", jsonParser, async (req, res) => {
   try {

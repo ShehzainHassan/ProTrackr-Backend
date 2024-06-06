@@ -45,9 +45,13 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
 
     console.log("UPLOADED FILE", uploadedFile);
     const fileRef = ref(storage, uploadedFile?.name);
-    await uploadBytes(fileRef, uploadedFile?.data);
-    fileUrl = await firebaseStorage.getDownloadURL(fileRef);
-    console.log("File Url:", fileUrl);
+    try {
+      await uploadBytes(fileRef, uploadedFile?.data);
+      fileUrl = await firebaseStorage.getDownloadURL(fileRef);
+      console.log("File Url:", fileUrl);
+    } catch (err) {
+      console.log(err);
+    }
   }
   try {
     const announcement = new Announcement({
@@ -69,10 +73,8 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
 app.delete("/deleteAnnouncement", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const id = query.id;
-  // const email = query.email;
   try {
     const announcement = await Announcement.findOneAndUpdate(
-      // { _id: id ,  userEmail: email},
       { _id: id },
       { $set: { isRead: true } },
       { upsert: false }
@@ -133,7 +135,7 @@ app.post("/UploadPastFYP", jsonParser, async (req, res) => {
         uploadedFile?.mimetype?.includes("docx") ||
         uploadedFile?.mimetype?.includes("doc") ||
         uploadedFile?.mimetype?.includes("xlsx") ||
-        uploadedFile?.mimetype?.includes("txt")  ||
+        uploadedFile?.mimetype?.includes("txt") ||
         uploadedFile?.mimetype?.includes("ppt") ||
         uploadedFile?.mimetype?.includes("pptx") ||
         uploadedFile?.mimetype?.includes("jpeg") ||
