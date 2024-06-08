@@ -80,8 +80,8 @@ const FacultySchema = new mongoose.Schema({
   roles: [String],
   slotsLeft: {
     type: Number,
-    default: 5
-  }
+    default: 5,
+  },
 });
 
 const Faculty = mongoose.model("Faculty", FacultySchema);
@@ -151,10 +151,10 @@ const announcement = new mongoose.Schema({
   description: String,
   title: String,
   postedBy: String,
-  isRead: Boolean,
+  hasRead: [String],
   // email: [{ val: String }],
   createdTime: { type: Date, default: Date.now },
-  Comments: [{ commentor: String, val: String }],
+  Comments: [{ email: String, commentor: String, val: String }],
   filePath: String,
 });
 const Announcement = mongoose.model("Announcement", announcement);
@@ -172,6 +172,10 @@ PastFYP.createCollection().then(function (collection) {});
 const adminSchema = new mongoose.Schema({
   email: String,
   password: String,
+  filePath: {
+    type: String,
+    default: "",
+  },
 });
 const Admin = mongoose.model("Admin", adminSchema);
 Admin.createCollection().then(async function (collection) {

@@ -240,8 +240,9 @@ app.post("/groupsToShow", jsonParser, async (req, res) => {
     console.log(groupIds);
     const group = await Group.find({ id: { $nin: groupIds } });
     const updatedGroups = group.filter(
-      (group => group.Status === "LOCKED" && group.advisor)
+      (group) => group.Status === "LOCKED" && group.advisor
     );
+
     res.status(201).send(updatedGroups);
   } catch (err) {
     console.error(err);

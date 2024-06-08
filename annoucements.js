@@ -9,6 +9,9 @@ const jsonParser = bodyParser.json({ limit: "50mb" });
 const fileupload = require("express-fileupload");
 const firebaseStorage = require("firebase/storage");
 const { getStorage, ref, uploadBytes } = firebaseStorage;
+const csv = require("csv-parser");
+const fs = require("fs");
+const axios = require("axios");
 
 const storage = getStorage();
 app.use(fileupload());
@@ -29,6 +32,7 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
         uploadedFile?.mimetype?.includes("doc") ||
         uploadedFile?.mimetype?.includes("xlsx") ||
         uploadedFile?.mimetype?.includes("txt") ||
+        uploadedFile?.mimetype?.includes("text") ||
         uploadedFile?.mimetype?.includes("ppt") ||
         uploadedFile?.mimetype?.includes("pptx") ||
         uploadedFile?.mimetype?.includes("jpeg") ||
@@ -70,6 +74,27 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
     console.log(err);
   }
 });
+
+app.put("/removeAnnouncementNotification", jsonParser, async (req, res) => {
+  const { id, email } = req.body;
+  try {
+    const announcement = await Announcement.findById(id);
+
+    if (!announcement) {
+      return res.status(404).send("Announcement not found");
+    }
+    if (!announcement.hasRead.includes(email)) {
+      announcement.hasRead.push(email);
+    }
+    await announcement.save();
+
+    res.status(200).send("Success");
+  } catch (err) {
+    console.error("Error removing announcement notification: ", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 app.delete("/deleteAnnouncement", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const id = query.id;
@@ -105,14 +130,14 @@ app.get("/getAnnouncements", jsonParser, async (req, res) => {
 
 app.post("/addComment/:id", jsonParser, async (req, res) => {
   const { id } = req.params;
-  const { commentor, val } = req.body;
+  const { commentor, val, email } = req.body;
 
   try {
     const announcement = await Announcement.findById(id);
     if (!announcement) {
       return res.status(404).send("Announcement not Found");
     }
-    announcement.Comments.push({ commentor, val });
+    announcement.Comments.push({ email, commentor, val });
     await announcement.save();
     return res.status(201).send(announcement);
   } catch (err) {
@@ -120,6 +145,32 @@ app.post("/addComment/:id", jsonParser, async (req, res) => {
   }
 });
 
+app.delete("/deleteComment", jsonParser, async (req, res) => {
+  const query = URL.parse(req.url, true).query;
+  const announcement_id = query.announcement_id;
+  const comment_id = query.comment_id;
+  try {
+    const announcement = await Announcement.findById(announcement_id);
+    if (!announcement) {
+      return res.status(404).send("Announcement not found");
+    }
+    const comment = announcement.Comments.find(
+      (comment) => comment.id === comment_id
+    );
+    if (!comment) {
+      return res.status(404).send("Comment not found");
+    }
+
+    await Announcement.updateOne(
+      { _id: announcement_id },
+      { $pull: { Comments: { _id: comment_id } } }
+    );
+    return res.status(200).send("Comment deleted successfully");
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send(err);
+  }
+});
 app.post("/UploadPastFYP", jsonParser, async (req, res) => {
   console.log("BODY: ", req.body);
   const { UploadedBy, file } = req.body;
@@ -136,6 +187,7 @@ app.post("/UploadPastFYP", jsonParser, async (req, res) => {
         uploadedFile?.mimetype?.includes("doc") ||
         uploadedFile?.mimetype?.includes("xlsx") ||
         uploadedFile?.mimetype?.includes("txt") ||
+        uploadedFile?.mimetype?.includes("text") ||
         uploadedFile?.mimetype?.includes("ppt") ||
         uploadedFile?.mimetype?.includes("pptx") ||
         uploadedFile?.mimetype?.includes("jpeg") ||
@@ -198,4 +250,99 @@ app.get("/getPastFYPs", jsonParser, async (req, res) => {
     console.log(err);
   }
 });
+
+app.post("/uploadCSV", jsonParser, async (req, res) => {
+  const { file } = req.body;
+  console.log("Request: ", req);
+  let fileUrl = null;
+  console.log("File: ", file);
+  if (file != "null") {
+    const uploadedFile = req?.files?.file;
+    console.log(req.files);
+    console.log("File type: ", uploadedFile?.mimetype);
+    if (uploadedFile?.size > 10 * 1024 * 1024) {
+      return res.status(400).send("File size too large");
+    }
+
+    console.log("UPLOADED FILE", uploadedFile);
+
+    const fileRef = ref(storage, uploadedFile?.name);
+    await uploadBytes(fileRef, uploadedFile?.data);
+
+    fileUrl = await firebaseStorage.getDownloadURL(fileRef);
+    console.log("File Url:", fileUrl);
+  }
+  try {
+    const admin = await dbSchema.Admin.findOne();
+    admin.filePath = fileUrl;
+    await admin.save();
+    res.status(201).send(admin);
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+app.post("/readCSV_UploadStudents", async (req, res) => {
+  try {
+    const admin = await dbSchema.Admin.findOne();
+    console.log(admin);
+    const firebaseURL = admin.filePath;
+    const response = await axios.get(firebaseURL, { responseType: "stream" });
+    let newStudentsCount = 0;
+    const processingPromises = [];
+
+    const csvStream = response.data.pipe(csv());
+
+    csvStream.on("data", (row) => {
+      const processRow = async () => {
+        if (row.isDisabled === "TRUE" || row.isDisabled === "true") {
+          row.isDisabled = true;
+        } else if (row.isDisabled === "FALSE" || row.isDisabled === "false") {
+          row.isDisabled = false;
+        }
+
+        try {
+          const existingStudent = await dbSchema.User.findOne({
+            email: row.email,
+          });
+          if (!existingStudent) {
+            const newStudent = new dbSchema.User(row);
+            await newStudent.save();
+            newStudentsCount++;
+          } else {
+            console.log(
+              `Skipping registration for student with email ${row.email} (already exists)`
+            );
+          }
+        } catch (saveError) {
+          console.error("Error saving student:", saveError);
+        }
+      };
+
+      processingPromises.push(processRow());
+    });
+
+    csvStream.on("end", async () => {
+      try {
+        await Promise.all(processingPromises);
+        console.log("CSV file successfully processed");
+        console.log("New Students Count: ", newStudentsCount);
+        res.status(200).json(newStudentsCount);
+      } catch (processingError) {
+        console.error("Error processing rows:", processingError);
+        res.status(500).send("Error processing rows");
+      }
+    });
+
+    csvStream.on("error", (error) => {
+      console.error("Error reading CSV file:", error);
+      res.status(500).send("Error reading CSV file");
+    });
+  } catch (error) {
+    console.error("Error processing request:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
 module.exports = app;
