@@ -74,6 +74,27 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
     console.log(err);
   }
 });
+
+app.put("/removeAnnouncementNotification", jsonParser, async (req, res) => {
+  const { id, email } = req.body;
+  try {
+    const announcement = await Announcement.findById(id);
+
+    if (!announcement) {
+      return res.status(404).send("Announcement not found");
+    }
+    if (!announcement.hasRead.includes(email)) {
+      announcement.hasRead.push(email);
+    }
+    await announcement.save();
+
+    res.status(200).send("Success");
+  } catch (err) {
+    console.error("Error removing announcement notification: ", err);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
 app.delete("/deleteAnnouncement", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const id = query.id;
