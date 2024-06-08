@@ -151,7 +151,7 @@ const announcement = new mongoose.Schema({
   description: String,
   title: String,
   postedBy: String,
-  isRead: Boolean,
+  hasRead: [String],
   // email: [{ val: String }],
   createdTime: { type: Date, default: Date.now },
   Comments: [{ email: String, commentor: String, val: String }],
