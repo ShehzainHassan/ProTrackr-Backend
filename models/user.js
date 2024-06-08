@@ -78,6 +78,10 @@ const FacultySchema = new mongoose.Schema({
   photo: String,
   groupIds: [{ val: String }],
   roles: [String],
+  slotsLeft: {
+    type: Number,
+    default: 5
+  }
 });
 
 const Faculty = mongoose.model("Faculty", FacultySchema);

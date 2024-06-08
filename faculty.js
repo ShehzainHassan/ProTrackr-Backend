@@ -239,7 +239,10 @@ app.post("/groupsToShow", jsonParser, async (req, res) => {
     }
     console.log(groupIds);
     const group = await Group.find({ id: { $nin: groupIds } });
-    res.status(201).send(group);
+    const updatedGroups = group.filter(
+      (group => group.Status === "LOCKED" && group.advisor)
+    );
+    res.status(201).send(updatedGroups);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Internal server error" });
