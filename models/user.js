@@ -154,7 +154,7 @@ const announcement = new mongoose.Schema({
   hasRead: [String],
   // email: [{ val: String }],
   createdTime: { type: Date, default: Date.now },
-  Comments: [{ email: String, commentor: String, val: String }],
+  Comments: [{ email: String, commentor: String, val: String, createdTime: { type: Date, default: Date.now } }],
   filePath: String,
 });
 const Announcement = mongoose.model("Announcement", announcement);
