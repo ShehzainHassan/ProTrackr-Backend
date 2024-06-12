@@ -99,6 +99,31 @@ app.post("/login", jsonParser, async (req, res) => {
   }
 });
 
+app.put("/updateStudentDetails", jsonParser, async (req, res) => {
+  const {
+    email, 
+    photo,
+  } = req.body;
+
+  try {
+    const updatedStudent = await User.findOneAndUpdate(
+      { email }, 
+      { photo }, 
+      { new: true }
+    );
+
+    if (updatedStudent) {
+      res.status(200).send(updatedStudent);
+      console.log("Student Edit Success");
+    } else {
+      res.status(404).send("Student not found");
+    }
+  } catch (err) {
+    res.status(500).send(err);
+    console.log(err);
+  }
+});
+
 app.get("/isRegisteredStudentEmail", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const email = query.email;

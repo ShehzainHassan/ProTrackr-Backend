@@ -130,14 +130,14 @@ app.get("/getAnnouncements", jsonParser, async (req, res) => {
 
 app.post("/addComment/:id", jsonParser, async (req, res) => {
   const { id } = req.params;
-  const { commentor, val, email } = req.body;
+  const { commentor, val, email, createdTime } = req.body;
 
   try {
     const announcement = await Announcement.findById(id);
     if (!announcement) {
       return res.status(404).send("Announcement not Found");
     }
-    announcement.Comments.push({ email, commentor, val });
+    announcement.Comments.push({ email, commentor, val , createdTime});
     await announcement.save();
     return res.status(201).send(announcement);
   } catch (err) {

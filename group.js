@@ -176,6 +176,9 @@ app.post("/groupMembers", jsonParser, async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      batch: user.batch,
+      rollNo: user.rollNo,
+      photo: user.photo,
     }));
 
     return res.status(200).json({ userDetails });
