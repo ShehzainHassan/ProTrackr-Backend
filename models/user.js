@@ -79,6 +79,10 @@ const FacultySchema = new mongoose.Schema({
     type: Number,
     default: 5,
   },
+  supervision_status: {
+    type: String,
+    default: "UNLOCKED",
+  },
 });
 
 const Faculty = mongoose.model("Faculty", FacultySchema);
