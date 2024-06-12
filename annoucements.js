@@ -310,6 +310,8 @@ app.post("/readCSV_UploadStudents", async (req, res) => {
             const newStudent = new dbSchema.User(row);
             await newStudent.save();
             newStudentsCount++;
+            await sendWelcomeEmail(row.email);
+            await sleep(3000);
           } else {
             console.log(
               `Skipping registration for student with email ${row.email} (already exists)`
@@ -345,4 +347,113 @@ app.post("/readCSV_UploadStudents", async (req, res) => {
   }
 });
 
+app.post("/readCSV_registerFaculty", async (req, res) => {
+  try {
+    const admin = await dbSchema.Admin.findOne();
+    const firebaseURL = admin.filePath;
+    const response = await axios.get(firebaseURL, { responseType: "stream" });
+    let newFacultyCount = 0;
+    const processingPromises = [];
+
+    const csvStream = response.data.pipe(csv());
+
+    csvStream.on("data", (row) => {
+      const processRow = async () => {
+        try {
+          const existingFaculty = await dbSchema.Faculty.findOne({
+            email: row.email,
+          });
+          if (!existingFaculty) {
+            let parsedGroupIds = [];
+            let parsedTags = [];
+
+            // Check if groupIds is not empty and is valid JSON
+            if (row.groupIds && row.groupIds.trim() !== "") {
+              parsedGroupIds = JSON.parse(row.groupIds);
+            }
+            // Check if interest_Tags is not empty and is valid JSON
+            if (row.interest_Tags && row.interest_Tags.trim() !== "") {
+              parsedTags = JSON.parse(row.interest_Tags);
+            }
+
+            const newFaculty = new dbSchema.Faculty({
+              ...row,
+              groupIds: parsedGroupIds,
+              interest_Tags: parsedTags,
+            });
+            await newFaculty.save();
+            newFacultyCount++;
+          } else {
+            console.log(
+              `Skipping registration for faculty with email ${row.email} (already exists)`
+            );
+          }
+        } catch (saveError) {
+          console.error("Error saving faculty:", saveError);
+        }
+      };
+
+      processingPromises.push(processRow());
+    });
+
+    csvStream.on("end", async () => {
+      try {
+        await Promise.all(processingPromises);
+        console.log("CSV file successfully processed");
+        console.log("New Faculty Count: ", newFacultyCount);
+        res.status(200).json(newFacultyCount);
+      } catch (processingError) {
+        console.error("Error processing rows:", processingError);
+        res.status(500).send("Error processing rows");
+      }
+    });
+
+    csvStream.on("error", (error) => {
+      console.error("Error reading CSV file:", error);
+      res.status(500).send("Error reading CSV file");
+    });
+  } catch (error) {
+    console.error("Error processing request:", error);
+    res.status(500).send("Internal server error");
+  }
+});
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+const nodemailer = require("nodemailer");
+
+async function sendWelcomeEmail(email) {
+  const transporter = nodemailer.createTransport({
+    pool: true,
+    maxConnections: 20,
+    service: "hotmail",
+    auth: {
+      user: "ProTrackr@hotmail.com",
+      pass: "1234admin1234",
+    },
+  });
+
+  const mailOptions = {
+    from: "ProTrackr@hotmail.com",
+    to: email,
+    subject: "Welcome to ProTrackr",
+    text: `
+      Dear Student,
+      
+      Welcome to ProTrackr. Here are your login details:
+      
+      Email: <strong>${email}</strong>
+      Password: <strong>12345678</strong>
+
+      Please make sure to change your password immediately after logging in. You can do this by using Forget Password on login page.
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Error sending welcome email:", error);
+  }
+}
 module.exports = app;
