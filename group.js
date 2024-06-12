@@ -8,6 +8,9 @@ const { sendMeetingEmails } = require("./scheduleMeet");
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
 
+// Middleware to parse JSON bodies
+app.use(express.json());
+
 app.post("/saveGroup", jsonParser, async (req, res) => {
   const {
     FYP_type,
@@ -103,6 +106,32 @@ app.get("/getLeader", jsonParser, async (req, res) => {
   } catch (error) {
     console.error("Error fetching join requests:", error);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.put('/updateGroupStatus', async (req, res) => {
+  const { groupTitle, newStatus, leaderEmail } = req.body;
+
+  try {
+    const group = await Group.findOne({ title: groupTitle });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    // Check if the user making the request is the group leader
+    const isLeader = group.email.some((email) => email.val === leaderEmail);
+    if (!isLeader) {
+      return res.status(403).json({ error: 'You are not authorized to update the group status' });
+    }
+
+    group.Status = newStatus;
+    await group.save();
+
+    res.json({ message: 'Group status updated successfully' });
+  } catch (error) {
+    console.error('Error updating group status:', error);
+    res.status(500).json({ error: 'An error occurred while updating the group status' });
   }
 });
 

@@ -7,8 +7,6 @@ const Group = dbSchema.Group;
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
 
-// Faculty Signup
-// Route for creating a new faculty entry
 app.post("/facultySignup", jsonParser, async (req, res) => {
   const {
     firstName,
@@ -178,6 +176,26 @@ app.put("/updateFacultyDetails", jsonParser, async (req, res) => {
     console.log(err);
   }
 });
+
+// app.put('/updateSupervisionStatus', async (req, res) => {
+//   const { newStatus, Email } = req.body;
+
+//   try {
+//     const advisor = await Faculty.findOne({ email: Email });
+
+//     if (!advisor) {
+//       return res.status(404).json({ error: 'Advisor not found' });
+//     }
+
+//     advisor.supervision_Status = newStatus;
+//     await advisor.save();
+
+//     res.json({ message: 'Advisor Supervision status updated successfully' });
+//   } catch (error) {
+//     console.error('Error in updating Advisor Supervision Status:', error);
+//     res.status(500).json({ error: 'An error occurred while updating the  status' });
+//   }
+// });
 
 app.put("/assignCommitteeMember", jsonParser, async (req, res) => {
   try {
