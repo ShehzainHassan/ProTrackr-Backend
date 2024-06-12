@@ -30,18 +30,15 @@ const userSchema = new mongoose.Schema({
   photo: String,
   fypStartSemester: {
     type: String,
-    default: "Spring 2024",
   },
   fypType: {
     type: String,
-    default: "FYP-1",
   },
   batch: {
     type: String,
   },
   isDisabled: {
     type: Boolean,
-    default: false,
   },
 });
 
@@ -76,7 +73,7 @@ const FacultySchema = new mongoose.Schema({
   curr_education: String,
   password: String,
   photo: String,
-  groupIds: [{ val: String }],
+  groupIds: [{ val: Number }],
   roles: [String],
   slotsLeft: {
     type: Number,
@@ -200,9 +197,13 @@ const panelSchema = new mongoose.Schema({
   faculties: {
     type: [],
   },
-  groups: {
-    type: [String],
-  },
+  groups: [
+    {
+      id: { type: String, required: true },
+      title: { type: String, required: true },
+      groupId: { type: Number, required: true },
+    },
+  ],
 });
 const Panel = mongoose.model("Panel", panelSchema);
 Panel.createCollection().then(function (collection) {});

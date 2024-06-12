@@ -160,7 +160,7 @@ app.put("/updateFacultyDetails", jsonParser, async (req, res) => {
         roomNo,
         photo,
         interest_Tags: interest_Tags.map((tag) => tag.value),
-         // Map the interest_Tags array to extract only the value property
+        // Map the interest_Tags array to extract only the value property
       },
       { new: true }
     );
@@ -380,4 +380,5 @@ app.get("/fetchFacultyGroups", jsonParser, async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 module.exports = app;

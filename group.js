@@ -4,7 +4,7 @@ const URL = require("url");
 const dbSchema = require("./models/user");
 const User = dbSchema.User;
 const Group = dbSchema.Group;
-const { sendMeetingEmails } = require("./scheduleMeet"); 
+const { sendMeetingEmails } = require("./scheduleMeet");
 const app = express();
 const jsonParser = bodyParser.json({ limit: "50mb" });
 
@@ -205,9 +205,9 @@ app.post("/groupMembers", jsonParser, async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      batch: user.batch,        
-      rollNo: user.rollNo,       
-      photo: user.photo
+      batch: user.batch,
+      rollNo: user.rollNo,
+      photo: user.photo,
     }));
 
     return res.status(200).json({ userDetails });
