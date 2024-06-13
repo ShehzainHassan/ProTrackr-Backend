@@ -28,7 +28,7 @@ app.post("/saveGroup", jsonParser, async (req, res) => {
   try {
     const newGroup = new Group({
       FYP_type,
-      Faculty_img: "",
+      Faculty_img: Faculty_img || "", // Default value for Faculty_img
       Status,
       Tags,
       description,
@@ -37,15 +37,37 @@ app.post("/saveGroup", jsonParser, async (req, res) => {
       img,
       leader,
       title,
-      advisor: "",
-      FYP1Progress: [{ D1: "pending", D2: "pending", D3: "pending" }],
-      FYP2Progress: [{ D1: "pending", D2: "pending", D3: "pending" }],
+      advisor: advisor || "",
+      FYP1Progress: [
+        {
+          D1: "pending",
+          D1Comments: "",
+          D2: "pending",
+          D2Comments: "",
+          D3: "pending",
+          D3Comments: "",
+          D4: "pending",
+          D4Comments: "",
+        },
+      ],
+      FYP2Progress: [
+        {
+          D1: "pending",
+          D1Comments: "",
+          D2: "pending",
+          D2Comments: "",
+          D3: "pending",
+          D3Comments: "",
+          D4: "pending",
+          D4Comments: "",
+        },
+      ],
     });
-    newGroup.save();
+    await newGroup.save();
     res.status(201).send(newGroup);
   } catch (err) {
+    console.error(err);
     res.status(422).send(err);
-    console.log(err);
   }
 });
 
@@ -248,9 +270,9 @@ app.post("/isLeader", jsonParser, async (req, res) => {
 app.get("/getGroupDetails", jsonParser, async (req, res) => {
   const query = URL.parse(req.url, true).query;
   const id = query.id;
-  console.log(id);
+  console.log("Query.id = ", id);
   try {
-    const group = await Group.findOne({ groupId: id });
+    const group = await Group.findOne({ id: id });
     console.log(group);
     if (group) {
       res.status(200).send(group);
@@ -332,6 +354,62 @@ app.post("/scheduleMeeting", jsonParser, async (req, res) => {
   } catch (error) {
     console.error("Error sending meeting invitations:", error);
     res.status(500).send("Internal Server Error");
+  }
+});
+
+app.put("/hideGroup/:id/", async (req, res) => {
+  try {
+    const customId = req.params.id;
+    console.log("CUSTOM ID = ", customId);
+    const group = await Group.findOneAndUpdate(
+      { id: customId },
+      { isShown: false },
+      { new: true }
+    );
+    console.log("GROUP = ", group);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    res.json({ message: "Group visibility updated", group });
+  } catch (error) {
+    console.error("Error updating group:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.put("/showGroup/:id", async (req, res) => {
+  try {
+    const customId = req.params.id;
+    console.log("CUSTOM ID = ", customId);
+    const group = await Group.findOneAndUpdate(
+      { id: customId },
+      { isShown: true },
+      { new: true }
+    );
+    console.log("GROUP = ", group);
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    res.json({ message: "Group visibility updated", group });
+  } catch (error) {
+    console.error("Error updating group:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+app.delete("/delete_Group/:id", async (req, res) => {
+  try {
+    const customId = req.params.id;
+    const group = await Group.findOneAndDelete({ id: customId });
+
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    res.json({ message: "Group deleted ", group });
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

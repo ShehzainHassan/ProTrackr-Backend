@@ -113,18 +113,80 @@ const groupSchema = new mongoose.Schema({
   advisorId: {
     type: String,
   },
+  isShown: {
+    type: Boolean,
+    default: true,
+  },
   FYP1Progress: [
     {
-      D1: { type: String, default: "pending" },
-      D2: { type: String, default: "pending" },
-      D3: { type: String, default: "pending" },
+      D1: {
+        type: String,
+        default: "pending",
+      },
+      D1Comments: {
+        type: String,
+        default: "",
+      },
+      D2: {
+        type: String,
+        default: "pending",
+      },
+      D2Comments: {
+        type: String,
+        default: "",
+      },
+      D3: {
+        type: String,
+        default: "pending",
+      },
+      D3Comments: {
+        type: String,
+        default: "",
+      },
+      D4: {
+        type: String,
+        default: "pending",
+      },
+      D4Comments: {
+        type: String,
+        default: "",
+      },
     },
   ],
   FYP2Progress: [
     {
-      D1: { type: String, default: "pending" },
-      D2: { type: String, default: "pending" },
-      D3: { type: String, default: "pending" },
+      D1: {
+        type: String,
+        default: "pending",
+      },
+      D1Comments: {
+        type: String,
+        default: "",
+      },
+      D2: {
+        type: String,
+        default: "pending",
+      },
+      D2Comments: {
+        type: String,
+        default: "",
+      },
+      D3: {
+        type: String,
+        default: "pending",
+      },
+      D3Comments: {
+        type: String,
+        default: "",
+      },
+      D4: {
+        type: String,
+        default: "pending",
+      },
+      D4Comments: {
+        type: String,
+        default: "",
+      },
     },
   ],
 });

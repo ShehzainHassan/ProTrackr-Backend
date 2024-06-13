@@ -463,39 +463,37 @@ app.post("/updateGroupProgressFromCSV", jsonParser, async (req, res) => {
     } else {
       firebaseURL = admin.fyp2FilePath;
     }
+
     const response = await axios.get(firebaseURL, { responseType: "stream" });
+    let csvHeaders = [];
 
     response.data
       .pipe(csv())
       .on("data", async (row) => {
+        console.log("ROW: ", row);
         try {
-          // Find the group based on project title
           const group = await dbSchema.Group.findOne({
             title: row["PROJECT TITLE"],
           });
-          console.log("GROUP: ", group);
-          // If the group exists, update progress
+
           if (group) {
-            // Update FYP1Progress or FYP2Progress based on type
+            const progress = {
+              D1: row["Deliverable 1 Feedback"] || "pending",
+              D1Comments: row["Comments1"] || "",
+              D2: row["Deliverable 2 Feedback"] || "pending",
+              D2Comments: row["Comments2"] || "",
+              D3: row["Deliverable 3 Feedback"] || "pending",
+              D3Comments: row["Comments3"] || "",
+              D4: row["Deliverable 4 Feedback"] || "pending",
+              D4Comments: row["Comments4"] || "",
+            };
+
             if (type === "FYP1") {
-              group.FYP1Progress = [
-                {
-                  D1: row["Deliverable 1 Feedback"],
-                  D2: row["Deliverable 2 Feedback"],
-                  D3: row["Deliverable 3 Feedback"],
-                },
-              ];
+              group.FYP1Progress = [progress];
             } else {
-              group.FYP2Progress = [
-                {
-                  D1: row["Deliverable 1 Feedback"],
-                  D2: row["Deliverable 2 Feedback"],
-                  D3: row["Deliverable 3 Feedback"],
-                },
-              ];
+              group.FYP2Progress = [progress];
             }
 
-            // Save the updated group
             await group.save();
           } else {
             console.log(
@@ -519,6 +517,7 @@ app.post("/updateGroupProgressFromCSV", jsonParser, async (req, res) => {
     return res.status(422).send(err);
   }
 });
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
