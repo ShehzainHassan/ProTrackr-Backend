@@ -252,7 +252,7 @@ app.post("/groupsToShow", jsonParser, async (req, res) => {
     for (let i = 0; i < facultyIDs.length; i++) {
       const faculty = await Faculty.findOne({ _id: facultyIDs[i] });
       if (faculty && faculty.groupIds) {
-        groupIds.push(...faculty.groupIds.map((group) => +group.val));
+        groupIds.push(...faculty.groupIds.map((group) => group.val));
       }
     }
     console.log(groupIds);
