@@ -253,7 +253,6 @@ app.get("/getPastFYPs", jsonParser, async (req, res) => {
 
 app.post("/uploadCSV", jsonParser, async (req, res) => {
   const { file } = req.body;
-  console.log("Request: ", req);
   let fileUrl = null;
   console.log("File: ", file);
   if (file != "null") {
@@ -275,6 +274,41 @@ app.post("/uploadCSV", jsonParser, async (req, res) => {
   try {
     const admin = await dbSchema.Admin.findOne();
     admin.filePath = fileUrl;
+    await admin.save();
+    res.status(201).send(admin);
+  } catch (err) {
+    res.status(422).send(err);
+    console.log(err);
+  }
+});
+
+app.post("/uploadProgressCSV", jsonParser, async (req, res) => {
+  const { file, type } = req.body;
+  let fileUrl = null;
+  console.log("File: ", file);
+  if (file != "null") {
+    const uploadedFile = req?.files?.file;
+    console.log(req.files);
+    console.log("File type: ", uploadedFile?.mimetype);
+    if (uploadedFile?.size > 10 * 1024 * 1024) {
+      return res.status(400).send("File size too large");
+    }
+
+    console.log("UPLOADED FILE", uploadedFile);
+
+    const fileRef = ref(storage, uploadedFile?.name);
+    await uploadBytes(fileRef, uploadedFile?.data);
+
+    fileUrl = await firebaseStorage.getDownloadURL(fileRef);
+    console.log("File Url:", fileUrl);
+  }
+  try {
+    const admin = await dbSchema.Admin.findOne();
+    if (type === "FYP1") {
+      admin.fyp1FilePath = fileUrl;
+    } else {
+      admin.fyp2FilePath = fileUrl;
+    }
     await admin.save();
     res.status(201).send(admin);
   } catch (err) {
@@ -418,6 +452,73 @@ app.post("/readCSV_registerFaculty", async (req, res) => {
   }
 });
 
+app.post("/updateGroupProgressFromCSV", jsonParser, async (req, res) => {
+  const { type } = req.body;
+  try {
+    const admin = await dbSchema.Admin.findOne();
+    let firebaseURL;
+
+    if (type === "FYP1") {
+      firebaseURL = admin.fyp1FilePath;
+    } else {
+      firebaseURL = admin.fyp2FilePath;
+    }
+    const response = await axios.get(firebaseURL, { responseType: "stream" });
+
+    response.data
+      .pipe(csv())
+      .on("data", async (row) => {
+        try {
+          // Find the group based on project title
+          const group = await dbSchema.Group.findOne({
+            title: row["PROJECT TITLE"],
+          });
+          console.log("GROUP: ", group);
+          // If the group exists, update progress
+          if (group) {
+            // Update FYP1Progress or FYP2Progress based on type
+            if (type === "FYP1") {
+              group.FYP1Progress = [
+                {
+                  D1: row["Deliverable 1 Feedback"],
+                  D2: row["Deliverable 2 Feedback"],
+                  D3: row["Deliverable 3 Feedback"],
+                },
+              ];
+            } else {
+              group.FYP2Progress = [
+                {
+                  D1: row["Deliverable 1 Feedback"],
+                  D2: row["Deliverable 2 Feedback"],
+                  D3: row["Deliverable 3 Feedback"],
+                },
+              ];
+            }
+
+            // Save the updated group
+            await group.save();
+          } else {
+            console.log(
+              `Group with title "${row["PROJECT TITLE"]}" not found. Skipping update.`
+            );
+          }
+        } catch (error) {
+          console.error("Error updating group progress:", error);
+        }
+      })
+      .on("end", () => {
+        console.log("CSV file processed successfully");
+        return res.status(201).send("Progress updated successfully");
+      })
+      .on("error", (error) => {
+        console.error("Error processing CSV file:", error);
+        return res.status(500).send("Error processing CSV file");
+      });
+  } catch (err) {
+    console.error(err);
+    return res.status(422).send(err);
+  }
+});
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

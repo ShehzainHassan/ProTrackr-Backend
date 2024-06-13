@@ -38,6 +38,8 @@ app.post("/saveGroup", jsonParser, async (req, res) => {
       leader,
       title,
       advisor: "",
+      FYP1Progress: [{ D1: "pending", D2: "pending", D3: "pending" }],
+      FYP2Progress: [{ D1: "pending", D2: "pending", D3: "pending" }],
     });
     newGroup.save();
     res.status(201).send(newGroup);
@@ -109,29 +111,33 @@ app.get("/getLeader", jsonParser, async (req, res) => {
   }
 });
 
-app.put('/updateGroupStatus', async (req, res) => {
+app.put("/updateGroupStatus", async (req, res) => {
   const { groupTitle, newStatus, leaderEmail } = req.body;
 
   try {
     const group = await Group.findOne({ title: groupTitle });
 
     if (!group) {
-      return res.status(404).json({ error: 'Group not found' });
+      return res.status(404).json({ error: "Group not found" });
     }
 
     // Check if the user making the request is the group leader
     const isLeader = group.email.some((email) => email.val === leaderEmail);
     if (!isLeader) {
-      return res.status(403).json({ error: 'You are not authorized to update the group status' });
+      return res
+        .status(403)
+        .json({ error: "You are not authorized to update the group status" });
     }
 
     group.Status = newStatus;
     await group.save();
 
-    res.json({ message: 'Group status updated successfully' });
+    res.json({ message: "Group status updated successfully" });
   } catch (error) {
-    console.error('Error updating group status:', error);
-    res.status(500).json({ error: 'An error occurred while updating the group status' });
+    console.error("Error updating group status:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while updating the group status" });
   }
 });
 

@@ -113,6 +113,20 @@ const groupSchema = new mongoose.Schema({
   advisorId: {
     type: String,
   },
+  FYP1Progress: [
+    {
+      D1: { type: String, default: "pending" },
+      D2: { type: String, default: "pending" },
+      D3: { type: String, default: "pending" },
+    },
+  ],
+  FYP2Progress: [
+    {
+      D1: { type: String, default: "pending" },
+      D2: { type: String, default: "pending" },
+      D3: { type: String, default: "pending" },
+    },
+  ],
 });
 
 const Group = mongoose.model("Group", groupSchema);
@@ -182,6 +196,14 @@ const adminSchema = new mongoose.Schema({
   email: String,
   password: String,
   filePath: {
+    type: String,
+    default: "",
+  },
+  fyp1FilePath: {
+    type: String,
+    default: "",
+  },
+  fyp2FilePath: {
     type: String,
     default: "",
   },
