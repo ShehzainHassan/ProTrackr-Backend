@@ -75,6 +75,56 @@ app.post("/addAnnouncement", jsonParser, async (req, res) => {
   }
 });
 
+app.get("/announcement/:id", jsonParser, async (req, res) => {
+  try {
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) {
+      return res.status(404).send("Announcement not found");
+    }
+    res.status(200).json(announcement);
+  } catch (err) {
+    console.error("Error fetching announcement: ", err);
+    res.status(500).send("Internal server error");
+  }
+});
+
+app.put("/announcement/:id", jsonParser, async (req, res) => {
+  const { announcementType, dateTime, description, title, postedBy, file } = req.body;
+  let fileUrl = null;
+
+  if (file && file !== "null") {
+    const uploadedFile = req.files.file;
+
+    if (uploadedFile.size > 10 * 1024 * 1024) {
+      return res.status(400).send("File size too large");
+    }
+
+    const fileRef = ref(storage, uploadedFile.name);
+    await uploadBytes(fileRef, uploadedFile.data);
+    fileUrl = await firebaseStorage.getDownloadURL(fileRef);
+  }
+
+  try {
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) {
+      return res.status(404).send("Announcement not found");
+    }
+
+    announcement.announcementType = announcementType || announcement.announcementType;
+    announcement.dateTime = dateTime || announcement.dateTime;
+    announcement.description = description || announcement.description;
+    announcement.title = title || announcement.title;
+    announcement.postedBy = postedBy || announcement.postedBy;
+    announcement.filePath = fileUrl || announcement.filePath;
+
+    await announcement.save();
+    res.status(200).send(announcement);
+  } catch (err) {
+    console.error("Error updating announcement: ", err);
+    res.status(500).send("Internal server error");
+  }
+});
+
 app.put("/removeAnnouncementNotification", jsonParser, async (req, res) => {
   const { id, email } = req.body;
   try {
