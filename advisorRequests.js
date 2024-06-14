@@ -12,12 +12,13 @@ const jsonParser = bodyParser.json({ limit: "50mb" });
 
 app.post("/requestAdvisor", jsonParser, async (req, res) => {
   const { id, email } = req.body;
+  console.log("request advisor id ", id);
   try {
     const advisor = await Faculty.findOne({ _id: new ObjectId(id) });
+    console.log(advisor);
     if (!advisor) {
       return res.status(404).send("Advisor not found");
     }
-
     const group = await Group.findOne({ "email.val": email });
     const member = await User.findOne({ email });
     if (!member) {
@@ -34,10 +35,10 @@ app.post("/requestAdvisor", jsonParser, async (req, res) => {
     });
     await advisorRequest.save();
 
-    res.status(201).send(advisorRequest);
+    return res.status(201).send(advisorRequest);
   } catch (err) {
     console.error(err);
-    res.status(422).send("Error finding advisor");
+    return res.status(422).send("Error finding advisor");
   }
 });
 
@@ -99,6 +100,25 @@ app.get("/fetchFacultyGroupsNotif", jsonParser, async (req, res) => {
   } catch (error) {
     console.error("Error fetching faculty groups:", error);
     res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+app.get("/advisorInfo/:id", jsonParser, async (req, res) => {
+  try {
+    const id = req.params.id;
+    console.log("id = ", id);
+    const facultyIdea = await dbSchema.FacultyIdea.findById(id);
+    if (!facultyIdea) {
+      return res.status(404).send("Faculty idea not found");
+    }
+    const advisorEmail = facultyIdea.contact;
+    const advisor = await Faculty.find({ email: advisorEmail });
+    if (!advisor) {
+      return res.status(404).send("Advisor not found");
+    }
+    console.log("advisor: ", advisor);
+    return res.status(200).send(advisor);
+  } catch (err) {
+    return res.status(500).send("Internal Server Error");
   }
 });
 module.exports = app;

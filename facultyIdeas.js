@@ -78,4 +78,28 @@ app.delete("/deleteFYPidea/:id", async (req, res) => {
     console.error(err);
   }
 });
+
+app.delete(
+  "/deleteFYPideaByEmail_Title/:contact/:title",
+  jsonParser,
+  async (req, res) => {
+    const { contact, title } = req.params;
+
+    try {
+      const deletedIdea = await FacultyIdea.findOneAndDelete({
+        contact: contact,
+        title: title,
+      });
+
+      if (deletedIdea) {
+        res.status(200).send("FYP idea deleted successfully.");
+      } else {
+        res.status(404).send("FYP idea not found.");
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Internal Server Error");
+    }
+  }
+);
 module.exports = app;

@@ -252,7 +252,7 @@ app.post("/groupsToShow", jsonParser, async (req, res) => {
     for (let i = 0; i < facultyIDs.length; i++) {
       const faculty = await Faculty.findOne({ _id: facultyIDs[i] });
       if (faculty && faculty.groupIds) {
-        groupIds.push(...faculty.groupIds.map((group) => +group.val));
+        groupIds.push(...faculty.groupIds.map((group) => group.val));
       }
     }
     console.log(groupIds);
@@ -270,8 +270,8 @@ app.post("/groupsToShow", jsonParser, async (req, res) => {
 
 app.post("/updateFaculty", jsonParser, async (req, res) => {
   const { group_id, facultyId } = req.body;
-  console.log(group_id);
-  console.log(facultyId);
+  console.log("Group id ", group_id);
+  console.log("Faculty id ", facultyId);
   try {
     const faculty = await Faculty.findOne({ _id: facultyId });
     console.log(faculty);
@@ -382,4 +382,18 @@ app.get("/fetchFacultyGroups", jsonParser, async (req, res) => {
   }
 });
 
+app.put("/updateSlots/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const faculty = await Faculty.findById(id);
+    if (!faculty) {
+      return res.status(404).send("advisor not found");
+    }
+    faculty.slotsLeft--;
+    await faculty.save();
+    return res.status(200).send("advisor slots updated successfully");
+  } catch (err) {
+    return res.status(500).send("Internal Server Error");
+  }
+});
 module.exports = app;
